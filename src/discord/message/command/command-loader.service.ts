@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { CommandService } from './command.service';
+import { CommandService } from '../command/command.service';
 import { Command } from './command.interface';
 import { readdirSync } from 'fs';
 import { join } from 'path';
