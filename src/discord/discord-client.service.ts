@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Client, GatewayIntentBits } from 'discord.js';
-import { CommandService } from './command/command.service';
+import { MessageService } from './message/message.service';
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private client: Client;
 
-  constructor(private readonly commandService: CommandService) {
+  constructor(private readonly messageService: MessageService) {
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -25,7 +25,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('messageCreate', (message) => {
-      this.commandService.handleMessage(message);
+      this.messageService.handleMessage(message);
     });
 
     await this.client.login(process.env.DISCORD_BOT_TOKEN);

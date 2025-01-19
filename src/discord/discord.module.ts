@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { DiscordClientService } from './discord-client.service';
-import { CommandService } from './command/command.service';
-import { CommandLoader } from './command/command-loader.service';
+import { MessageModule } from './message/message.module';
 
 @Module({
-  providers: [DiscordClientService, CommandService, CommandLoader],
+  providers: [DiscordClientService],
+  imports: [MessageModule],
 })
 export class DiscordModule {}

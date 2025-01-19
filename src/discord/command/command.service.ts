@@ -14,9 +14,7 @@ export class CommandService {
     this.commands.set(command, handler);
   }
 
-  handleMessage(message: Message) {
-    if (message.author.bot || !message.content.startsWith('!')) return;
-
+  handleCommand(message: Message) {
     const [command, ...args] = message.content.slice(1).trim().split(/\s+/);
     const handler = this.commands.get(command);
 
