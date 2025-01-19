@@ -28,7 +28,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         message.reply('Pong!');
       }
     });
-    console.log('process.env.DISCORD_BOT_TOKEN', process.env.DISCORD_BOT_TOKEN);
+
     await this.client.login(process.env.DISCORD_BOT_TOKEN);
   }
 
