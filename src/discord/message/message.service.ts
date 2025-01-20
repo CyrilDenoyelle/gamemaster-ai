@@ -8,10 +8,6 @@ export class MessageService {
 
   handleMessage(message: Message) {
     if (!message.author.bot && message.content.startsWith('!')) {
-      console.log(
-        'MessageService: handleMessage: message.content:',
-        message.content,
-      );
       this.commandService.handleCommand(message);
     }
   }
