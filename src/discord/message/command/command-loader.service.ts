@@ -3,12 +3,16 @@ import { CommandService } from '../command/command.service';
 import { Command } from './command.interface';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { VoiceService } from '../../voice/voice.service';
 
 @Injectable()
 export class CommandLoader implements OnModuleInit {
   private readonly commandsPath = join(__dirname, 'commands'); // Directory for commands
 
-  constructor(private readonly commandService: CommandService) {}
+  constructor(
+    private readonly commandService: CommandService,
+    private readonly voiceService: VoiceService,
+  ) {}
 
   async onModuleInit() {
     await this.loadCommands();
@@ -27,7 +31,7 @@ export class CommandLoader implements OnModuleInit {
         continue;
       }
 
-      const command: Command = new CommandClass();
+      const command: Command = new CommandClass(this.voiceService);
 
       if (command && command.name && typeof command.execute === 'function') {
         this.commandService.registerCommand(
