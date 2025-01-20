@@ -67,6 +67,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         this.voiceService.joinChannel(channel);
       }
     }
+    return;
   }
 
   /**
