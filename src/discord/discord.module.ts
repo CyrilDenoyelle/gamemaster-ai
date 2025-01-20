@@ -5,7 +5,7 @@ import { VoiceService } from './voice/voice.service';
 import { VoiceModule } from './voice/voice.module';
 
 @Module({
-  providers: [DiscordClientService, VoiceService],
   imports: [MessageModule, VoiceModule],
+  providers: [DiscordClientService, VoiceService],
 })
 export class DiscordModule {}

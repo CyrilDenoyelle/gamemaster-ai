@@ -7,8 +7,8 @@ describe('MessageService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MessageService],
       imports: [CommandModule],
+      providers: [MessageService],
     }).compile();
 
     service = module.get<MessageService>(MessageService);

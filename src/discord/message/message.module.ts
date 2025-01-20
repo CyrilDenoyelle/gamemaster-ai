@@ -3,8 +3,8 @@ import { MessageService } from './message.service';
 import { CommandModule } from './command/command.module';
 
 @Module({
-  providers: [MessageService],
   imports: [CommandModule],
+  providers: [MessageService],
   exports: [MessageService],
 })
 export class MessageModule {}
