@@ -1,12 +1,17 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, VoiceChannel } from 'discord.js';
 import { MessageService } from './message/message.service';
+import { existsSync, readFileSync } from 'fs';
+import { VoiceService } from './voice/voice.service';
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private client: Client;
 
-  constructor(private readonly messageService: MessageService) {
+  constructor(
+    private readonly messageService: MessageService,
+    private readonly voiceService: VoiceService,
+  ) {
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -22,6 +27,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     console.log('Initializing Discord Bot...');
     this.client.once('ready', () => {
       console.log(`Logged in as ${this.client.user?.tag}`);
+      this.loadConnectedChannels();
     });
 
     this.client.on('messageCreate', (message) => {
@@ -34,5 +40,36 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     console.log('Destroying Discord Bot...');
     await this.client.destroy();
+  }
+
+  /**
+   * Loads connected channels from storage and reconnects.
+   */
+  private async loadConnectedChannels() {
+    if (!existsSync(this.voiceService.storageFile)) return;
+    const data = JSON.parse(
+      readFileSync(this.voiceService.storageFile, 'utf-8'),
+    );
+    console.log(readFileSync(this.voiceService.storageFile, 'utf-8'));
+    for (const { guildId, channelId } of data) {
+      const guild = await this.getGuildById(guildId);
+      const channel = guild?.channels.resolve(channelId) as VoiceChannel;
+
+      if (channel) {
+        this.voiceService.joinChannel(channel);
+      }
+    }
+  }
+
+  /**
+   * Helper to get a guild by its ID.
+   * @param guildId The ID of the guild.
+   */
+  private async getGuildById(guildId: string) {
+    const client = this.client;
+    if (!client) {
+      return null;
+    }
+    return client.guilds.resolve(guildId);
   }
 }

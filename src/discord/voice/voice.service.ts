@@ -5,13 +5,16 @@ import {
   createAudioPlayer,
   AudioPlayerStatus,
 } from '@discordjs/voice';
-import { VoiceBasedChannel, VoiceChannel } from 'discord.js';
+import { Guild, VoiceBasedChannel, VoiceChannel } from 'discord.js';
+import { join } from 'path';
+import { writeFileSync } from 'fs';
 
 @Injectable()
 export class VoiceService {
   private readonly logger = new Logger(VoiceService.name);
   private connections = new Map<string, VoiceConnection>(); // Guild ID -> VoiceConnection
   private audioPlayer = createAudioPlayer();
+  readonly storageFile = join(__dirname, '../../../connected-channels.json');
 
   constructor() {
     // Log player events for debugging
@@ -42,6 +45,44 @@ export class VoiceService {
     });
 
     this.logger.log(`Joined voice channel: ${channel.name}`);
+
+    this.connections.set(channel.guild.id, connection);
+    // log connections ids
+    this.saveConnectedChannels();
     return connection;
+  }
+
+  /**
+   * Leaves the voice channel in the specified guild and updates storage.
+   * @param guild The Discord guild to disconnect from.
+   */
+  leaveChannel(guild: Guild) {
+    const connection = this.connections.get(guild.id);
+    if (connection) {
+      connection.disconnect();
+      this.connections.delete(guild.id);
+      this.logger.log(`Left the voice channel in guild ${guild.id}`);
+      this.saveConnectedChannels();
+    } else {
+      this.logger.warn(
+        `No active voice connection found for guild ${guild.id}`,
+      );
+    }
+  }
+
+  /**
+   * Saves the connected channels to a file.
+   */
+  private saveConnectedChannels() {
+    const data = Array.from(this.connections.keys()).map((guildId) => {
+      const connection = this.connections.get(guildId);
+      return {
+        guildId,
+        channelId: connection?.joinConfig.channelId,
+      };
+    });
+
+    writeFileSync(this.storageFile, JSON.stringify(data, null, 2));
+    this.logger.log('Connected channels saved to storage.');
   }
 }
