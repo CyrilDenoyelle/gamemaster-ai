@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { Client, GatewayIntentBits, VoiceChannel } from 'discord.js';
 import { MessageService } from './message/message.service';
 import { existsSync, readFileSync } from 'fs';
@@ -6,6 +11,7 @@ import { VoiceService } from './voice/voice.service';
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(DiscordClientService.name);
   private client: Client;
 
   constructor(
@@ -24,9 +30,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    console.log('Initializing Discord Bot...');
+    this.logger.log('Initializing Discord Bot...');
     this.client.once('ready', () => {
-      console.log(`Logged in as ${this.client.user?.tag}`);
+      this.logger.log(`...Logged in as ${this.client.user?.tag}`);
       this.loadConnectedChannels();
     });
 
@@ -38,7 +44,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    console.log('Destroying Discord Bot...');
+    this.logger.log('Destroying Discord Bot');
     await this.client.destroy();
   }
 
@@ -50,12 +56,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     const data = JSON.parse(
       readFileSync(this.voiceService.storageFile, 'utf-8'),
     );
-    console.log(readFileSync(this.voiceService.storageFile, 'utf-8'));
     for (const { guildId, channelId } of data) {
       const guild = await this.getGuildById(guildId);
       const channel = guild?.channels.resolve(channelId) as VoiceChannel;
 
       if (channel) {
+        this.logger.log(
+          `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
+        );
         this.voiceService.joinChannel(channel);
       }
     }

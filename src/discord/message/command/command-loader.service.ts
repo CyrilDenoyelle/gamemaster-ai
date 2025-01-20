@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CommandService } from '../command/command.service';
 import { Command } from './command.interface';
 import { readdirSync } from 'fs';
@@ -7,6 +7,7 @@ import { VoiceService } from '../../voice/voice.service';
 
 @Injectable()
 export class CommandLoader implements OnModuleInit {
+  private readonly logger = new Logger(CommandLoader.name);
   private readonly commandsPath = join(__dirname, 'commands'); // Directory for commands
 
   constructor(
@@ -19,7 +20,7 @@ export class CommandLoader implements OnModuleInit {
   }
 
   private async loadCommands() {
-    console.log('Loading commands:');
+    this.logger.log('Loading commands...');
     const commandFiles = readdirSync(this.commandsPath).filter((file) =>
       file.endsWith('.command.js'),
     );
@@ -27,7 +28,7 @@ export class CommandLoader implements OnModuleInit {
       const module = await import(join(this.commandsPath, file));
       const CommandClass = module.default;
       if (!CommandClass) {
-        console.warn(`Invalid command file: ${file}`);
+        this.logger.log(`Invalid command file: ${file}`);
         continue;
       }
 
@@ -38,11 +39,11 @@ export class CommandLoader implements OnModuleInit {
           command.name,
           command.execute.bind(command),
         );
-        console.log(`- ${command.name}`);
+        this.logger.log(`${command.name}`);
       } else {
-        console.warn(`Invalid command definition in file: ${file}`);
+        this.logger.warn(`Invalid command definition in file: ${file}`);
       }
     }
-    console.log('...Commands loaded');
+    this.logger.log('...Commands loaded');
   }
 }
