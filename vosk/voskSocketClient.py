@@ -8,6 +8,15 @@ import json
 
 startTimer = time.time()
 
+# Set the Vosk instance user by args
+import argparse
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Vosk Socket Client')
+parser.add_argument('--userId', type=str, required=True, help='User ID')
+args = parser.parse_args()
+
+
 # Path to the Vosk model
 # download the model from https://alphacephei.com/vosk/models and extract it to the vosk folder
 # MODEL_PATH = "./vosk/vosk-model-fr-0.6-linto-2.2.0"
@@ -87,16 +96,21 @@ def processAudio():
                 processTimer = time.time()
                 print(text)
                 print('------')
+                sio.emit('transcribed-text', result)
         # else:
         #     result = recognizer.PartialResult()
         #     print(f"({json.loads(result)['partial']})")
 
         # pause while loop
         time.sleep(0.4)
- 
+
 def connect_to_server():
-    server_url = 'ws://localhost:8080'  # Use the correct URL and namespace
-    sio.connect(server_url)
+    server_url = 'ws://localhost:80'  # Use the correct URL
+
+    sio.connect(
+        url=server_url,
+        headers = { 'user_id': args.userId }
+    )
     try:
         # Keep the connection alive and process incoming data in audio_buffer
         processAudio()

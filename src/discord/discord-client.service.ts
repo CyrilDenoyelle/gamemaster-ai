@@ -4,7 +4,13 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { Client, GatewayIntentBits, VoiceChannel } from 'discord.js';
+import {
+  Client,
+  Events,
+  GatewayIntentBits,
+  VoiceChannel,
+  VoiceState,
+} from 'discord.js';
 import { MessageService } from './message/message.service';
 import { existsSync, readFileSync } from 'fs';
 import { VoiceService } from './voice/voice.service';
@@ -39,6 +45,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.client.on('messageCreate', (message) => {
       this.messageService.handleMessage(message);
     });
+
+    // subscribe to user connections events
+    this.client.on(
+      Events.VoiceStateUpdate,
+      (oldState: VoiceState, newState: VoiceState) => {
+        this.voiceService.handleVoiceStateUpdate(oldState, newState);
+      },
+    );
 
     await this.client.login(process.env.DISCORD_BOT_TOKEN);
   }

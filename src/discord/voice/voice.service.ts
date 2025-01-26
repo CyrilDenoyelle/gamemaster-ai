@@ -8,11 +8,13 @@ import {
   AudioReceiveStream,
   VoiceReceiver,
 } from '@discordjs/voice';
-import { Guild, VoiceBasedChannel, VoiceChannel } from 'discord.js';
+import { Guild, VoiceBasedChannel, VoiceChannel, VoiceState } from 'discord.js';
 import { join } from 'path';
 import { writeFileSync } from 'fs';
 import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
 import { OpusEncoder } from '@discordjs/opus';
+
+import { spawn } from 'child_process';
 
 @Injectable()
 export class VoiceService {
@@ -22,6 +24,7 @@ export class VoiceService {
   private activeStreams = new Map<string, AudioReceiveStream>(); // User ID -> AudioReceiveStream
   readonly storageFile = join(__dirname, '../../../connected-channels.json');
   encoder = new OpusEncoder(48000, 1);
+  sttProcesses = new Map<string, ReturnType<typeof spawn>>(); // User ID -> spawn (Speech to text process)
 
   constructor(private audioStreamGateway: AudioStreamGateway) {
     // Log player events for debugging
@@ -38,6 +41,15 @@ export class VoiceService {
    * @param voiceChannel The Discord voice channel to join.
    */
   joinChannel(channel: VoiceBasedChannel): VoiceConnection | null {
+    // users in the channel
+    const users = channel.members.filter((member) => !member.user.bot);
+
+    // create a speech to text instace foreach users
+    users.forEach((user) => {
+      const sttProcess = this.spawnInstance(user.id);
+      this.sttProcesses.set(user.id, sttProcess);
+    });
+
     if (!(channel instanceof VoiceChannel)) {
       this.logger.warn(
         `Cannot join non-standard voice channels like: ${channel.name}`,
@@ -65,6 +77,48 @@ export class VoiceService {
     return connection;
   }
 
+  handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
+    const user = oldState.member.user;
+    if (user.bot) return;
+    // current voice channel of the bot
+    const currentConnection = this.connections.get(newState.guild.id);
+
+    if (
+      !this.sttProcesses.has(user.id) &&
+      newState.channelId === currentConnection?.joinConfig.channelId
+    ) {
+      const sttProcess = this.spawnInstance(user.id);
+      this.sttProcesses.set(user.id, sttProcess);
+    } else if (
+      this.sttProcesses.has(user.id) &&
+      newState.channelId !== currentConnection?.joinConfig.channelId
+    ) {
+      this.sttProcesses.get(user.id)?.kill();
+      this.sttProcesses.delete(user.id);
+    }
+
+    return;
+  }
+
+  /**
+   * Spawns a Vosk instance for a user.
+   * @param userId The ID of the user.
+   */
+  spawnInstance(userId: string): ReturnType<typeof spawn> {
+    const sttProcess = spawn('python', [
+      join(__dirname, '../../../vosk/voskSocketClient.py'),
+      '--userId',
+      userId,
+    ]);
+    this.logger.log(`Vosk process for user ${userId} started`);
+
+    sttProcess.on('close', (code) => {
+      this.logger.log(
+        `Vosk process for user ${userId} exited with code: ${code}`,
+      );
+    });
+    return sttProcess;
+  }
   /**
    * Listens to user audio in a voice connection.
    * @param connection The voice connection to listen on.
