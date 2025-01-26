@@ -41,6 +41,13 @@ export class VoiceService {
    * @param voiceChannel The Discord voice channel to join.
    */
   joinChannel(channel: VoiceBasedChannel): VoiceConnection | null {
+    if (!(channel instanceof VoiceChannel)) {
+      this.logger.warn(
+        `Cannot join non-standard voice channels like: ${channel.name}`,
+      );
+      return null;
+    }
+
     // users in the channel
     const users = channel.members.filter((member) => !member.user.bot);
 
@@ -49,13 +56,6 @@ export class VoiceService {
       const sttProcess = this.spawnInstance(user.id);
       this.sttProcesses.set(user.id, sttProcess);
     });
-
-    if (!(channel instanceof VoiceChannel)) {
-      this.logger.warn(
-        `Cannot join non-standard voice channels like: ${channel.name}`,
-      );
-      return null;
-    }
 
     const connection = joinVoiceChannel({
       channelId: channel.id,
