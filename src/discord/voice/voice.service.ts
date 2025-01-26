@@ -185,6 +185,10 @@ export class VoiceService {
     const connection = this.connections.get(guild.id);
     if (connection) {
       connection.disconnect();
+      this.sttProcesses.forEach((sttProcess) => {
+        sttProcess.kill();
+      });
+      this.sttProcesses.clear();
       this.connections.delete(guild.id);
       this.logger.log(`Left the voice channel in guild ${guild.id}`);
       this.saveConnectedChannels();
