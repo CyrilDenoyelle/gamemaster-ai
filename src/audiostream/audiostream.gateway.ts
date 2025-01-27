@@ -29,14 +29,12 @@ export class AudioStreamGateway
   }
 
   /**
-   * Broadcast audio data to all connected clients
+   * Broadcast audio data to userId assigned socket
    * @param audioData The audio data to broadcast
    */
-  broadcastAudio(audioData: Buffer) {
-    // log the buffer length
-    this.activeClients.forEach((socket) => {
-      socket.emit('audio-stream', audioData);
-    });
+  broadcastAudio(userId: string, audioData: Buffer) {
+    // send audio data activeConnections where userId is = userId
+    this.activeClients.get(userId).emit('audio-stream', audioData);
   }
 
   /**
@@ -45,9 +43,10 @@ export class AudioStreamGateway
    * @param payload
    */
   @SubscribeMessage('transcribed-text')
-  handleTranscribedText(client: Socket, payload: string) {
+  handleTranscribedText(socket: Socket, payload: string) {
     const { text } = JSON.parse(payload);
-    console.log('client', client.id);
+    console.log('user_id', socket.handshake.headers.user_id);
+    console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
   }
 

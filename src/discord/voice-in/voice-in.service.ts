@@ -142,7 +142,10 @@ export class VoiceInService {
       // Convert the audio stream from Opus to PCM and send it to the WebSocket server
       audioStream.on('data', (audioData: Buffer) => {
         // Broadcast to WebSocket clients
-        this.audioStreamGateway.broadcastAudio(this.encoder.decode(audioData));
+        this.audioStreamGateway.broadcastAudio(
+          userId,
+          this.encoder.decode(audioData),
+        );
       });
 
       // Clean up when the stream ends
