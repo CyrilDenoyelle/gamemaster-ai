@@ -105,7 +105,11 @@ export class VoiceInService {
    * @param userId The ID of the user.
    */
   spawnInstance(userId: string): ReturnType<typeof spawn> {
-    const sttProcess = spawn('python', [
+    const sttProcess = spawn('conda', [
+      'run',
+      '-n',
+      'ttsstt',
+      'python',
       join(__dirname, '../../../vosk/voskSocketClient.py'),
       '--userId',
       userId,

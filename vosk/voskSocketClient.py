@@ -1,8 +1,7 @@
 
-import numpy as np
-from vosk import Model, KaldiRecognizer
-import socketio
-import numpy as np
+from vosk import Model, KaldiRecognizer # pip install vosk
+import socketio # pip install python-socketio
+import numpy as np # pip install numpy
 import time
 import json
 
@@ -85,8 +84,8 @@ def processAudio():
             )
 
         # push audio to a file
-        with open('audiotest.wav', 'ab') as f:
-            f.write(mono_audio.tobytes())
+        # with open('audiotest.wav', 'ab') as f:
+        #     f.write(mono_audio.tobytes())
         # Process with Vosk
         if recognizer.AcceptWaveform(mono_audio.tobytes()):
             result = recognizer.Result()
