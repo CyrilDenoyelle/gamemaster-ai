@@ -17,8 +17,8 @@ import { OpusEncoder } from '@discordjs/opus';
 import { spawn } from 'child_process';
 
 @Injectable()
-export class VoiceService {
-  private readonly logger = new Logger(VoiceService.name);
+export class VoiceInService {
+  private readonly logger = new Logger(VoiceInService.name);
   private connections = new Map<string, VoiceConnection>(); // Guild ID -> VoiceConnection
   private audioPlayer = createAudioPlayer();
   private activeStreams = new Map<string, AudioReceiveStream>(); // User ID -> AudioReceiveStream
@@ -119,6 +119,7 @@ export class VoiceService {
     });
     return sttProcess;
   }
+
   /**
    * Listens to user audio in a voice connection.
    * @param connection The voice connection to listen on.

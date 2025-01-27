@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { VoiceService } from './voice.service';
+import { VoiceInService } from './voice-in.service';
 import { AudioStreamModule } from 'src/audiostream/audiostream.module';
 
 @Module({
   imports: [AudioStreamModule],
-  providers: [VoiceService],
-  exports: [VoiceService],
+  providers: [VoiceInService],
+  exports: [VoiceInService],
 })
-export class VoiceModule {}
+export class VoiceInModule {}

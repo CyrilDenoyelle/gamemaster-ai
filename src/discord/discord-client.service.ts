@@ -13,7 +13,7 @@ import {
 } from 'discord.js';
 import { MessageService } from './message/message.service';
 import { existsSync, readFileSync } from 'fs';
-import { VoiceService } from './voice/voice.service';
+import { VoiceInService } from './voice-in/voice-in.service';
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
@@ -22,7 +22,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly messageService: MessageService,
-    private readonly voiceService: VoiceService,
+    private readonly voiceInService: VoiceInService,
   ) {
     this.client = new Client({
       intents: [
@@ -50,7 +50,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.client.on(
       Events.VoiceStateUpdate,
       (oldState: VoiceState, newState: VoiceState) => {
-        this.voiceService.handleVoiceStateUpdate(oldState, newState);
+        this.voiceInService.handleVoiceStateUpdate(oldState, newState);
       },
     );
 
@@ -66,9 +66,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * Loads connected channels from storage and reconnects.
    */
   private async loadConnectedChannels() {
-    if (!existsSync(this.voiceService.storageFile)) return;
+    if (!existsSync(this.voiceInService.storageFile)) return;
     const data = JSON.parse(
-      readFileSync(this.voiceService.storageFile, 'utf-8'),
+      readFileSync(this.voiceInService.storageFile, 'utf-8'),
     );
     for (const { guildId, channelId } of data) {
       const guild = await this.getGuildById(guildId);
@@ -78,7 +78,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
         );
-        this.voiceService.joinChannel(channel);
+        this.voiceInService.joinChannel(channel);
       }
     }
     return;

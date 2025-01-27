@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CommandService } from './command.service';
 import { CommandLoader } from './command-loader.service';
-import { VoiceModule } from '../../voice/voice.module';
+import { VoiceInModule } from '../../voice-in/voice-in.module';
 
 @Module({
-  imports: [VoiceModule],
+  imports: [VoiceInModule],
   providers: [CommandService, CommandLoader],
   exports: [CommandService],
 })

@@ -1,12 +1,12 @@
 import { Command } from '../command.interface';
 import { Message } from 'discord.js';
-import { VoiceService } from '../../../voice/voice.service';
+import { VoiceInService } from '../../../voice-in/voice-in.service';
 
 export default class JoinCommand implements Command {
   name = 'joinme';
   description = 'Makes the bot join the voice channel you are in.';
 
-  constructor(private readonly voiceService: VoiceService) {}
+  constructor(private readonly voiceInService: VoiceInService) {}
 
   execute(message: Message) {
     const { member, guild } = message;
@@ -22,7 +22,7 @@ export default class JoinCommand implements Command {
       return;
     }
 
-    this.voiceService.joinChannel(voiceChannel);
+    this.voiceInService.joinChannel(voiceChannel);
     message.reply(`Joined the voice channel: ${voiceChannel.name}`);
   }
 }
