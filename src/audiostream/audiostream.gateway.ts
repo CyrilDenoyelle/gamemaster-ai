@@ -34,6 +34,10 @@ export class AudioStreamGateway
    */
   broadcastAudio(userId: string, audioData: Buffer) {
     // send audio data activeConnections where userId is = userId
+    if (!this.activeClients.has(userId)) {
+      this.logger.warn(`No active client with id: ${userId}`);
+      return;
+    }
     this.activeClients.get(userId).emit('audio-stream', audioData);
   }
 
