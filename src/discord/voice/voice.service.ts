@@ -52,15 +52,13 @@ export class VoiceService {
       return null;
     }
 
+    // create a speech to text instance for the bot
+    const botId = process.env.BOT_ID;
+    const childProcesse = this.spawnTtsInstance(botId, channel.guild.id);
+    this.childProcesses.set(botId, childProcesse);
+
     // users in the channel
     const users = channel.members.filter((member) => !member.user.bot);
-    const bots = channel.members.filter((member) => member.user.bot);
-
-    // create a text to speech instace foreach bot
-    bots.forEach((user) => {
-      const childProcesse = this.spawnTtsInstance(user.id, channel.guild.id);
-      this.childProcesses.set(user.id, childProcesse);
-    });
 
     // create a speech to text instace foreach users
     users.forEach((user) => {
