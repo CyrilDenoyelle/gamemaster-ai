@@ -21,7 +21,7 @@ export class AudioStreamGateway
 {
   constructor(
     @Inject(forwardRef(() => VoiceService))
-    private readonly voiceInService: VoiceService,
+    private readonly voiceService: VoiceService,
   ) {}
   @WebSocketServer()
   server: Server;
@@ -58,7 +58,7 @@ export class AudioStreamGateway
     console.log('user_id', userId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
-    this.sendText(process.env.BOT_ID, text);
+    this.sendText(text);
   }
 
   /**
@@ -70,7 +70,7 @@ export class AudioStreamGateway
   handleTranscribedAudio(socket: Socket, filePath: string) {
     console.log('handleTranscribedAudio', filePath);
     const guildId = socket.handshake.headers.guild_id;
-    this.voiceInService.play(
+    this.voiceService.play(
       Array.isArray(guildId) ? guildId[0] : guildId, // should be guildId
       filePath,
     );
@@ -80,7 +80,8 @@ export class AudioStreamGateway
    * Send text data to handshake.headers user_id connected clients
    * @param text The audio data to broadcast
    */
-  sendText(userId: string, text: string) {
+  sendText(text: string) {
+    const userId = process.env.BOT_ID;
     if (!this.activeClients.has(userId)) {
       this.logger.warn(`No active client with id: ${userId}`);
       return;
