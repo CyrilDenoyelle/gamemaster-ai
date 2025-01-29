@@ -56,7 +56,7 @@ export class VoiceService {
     const users = channel.members.filter((member) => !member.user.bot);
     const bots = channel.members.filter((member) => member.user.bot);
 
-    // create a speech to text instace foreach users
+    // create a text to speech instace foreach bot
     bots.forEach((user) => {
       const childProcesse = this.spawnTtsInstance(user.id, channel.guild.id);
       this.childProcesses.set(user.id, childProcesse);

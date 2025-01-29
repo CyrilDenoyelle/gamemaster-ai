@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
+import { ChatService } from 'src/chat/chat.service';
 import { VoiceService } from 'src/discord/voice/voice.service';
 
 @WebSocketGateway(80, {
@@ -22,6 +23,8 @@ export class AudioStreamGateway
   constructor(
     @Inject(forwardRef(() => VoiceService))
     private readonly voiceService: VoiceService,
+    @Inject(forwardRef(() => ChatService))
+    private readonly chatService: ChatService,
   ) {}
   @WebSocketServer()
   server: Server;
@@ -58,7 +61,11 @@ export class AudioStreamGateway
     console.log('user_id', userId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
-    this.sendText(text);
+    this.chatService.sendText({
+      text,
+      role: 'user',
+      userId: Array.isArray(userId) ? userId[0] : userId,
+    });
   }
 
   /**
