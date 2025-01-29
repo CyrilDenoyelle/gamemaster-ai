@@ -30,7 +30,10 @@ export class OpenAiService {
       ...this.baseSettings,
       messages: chat,
     });
-    this.audioStreamGateway.sendText(answer.choices[0].message.content);
+    this.audioStreamGateway.sendText(
+      answer.choices[0].message.content.replace('*', ''),
+    );
+
     this.chatService.sendText({
       role: 'assistant',
       text: answer.choices[0].message.content,
