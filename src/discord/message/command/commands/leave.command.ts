@@ -1,12 +1,12 @@
 import { Command } from '../command.interface';
 import { Message } from 'discord.js';
-import { VoiceInService } from '../../../voice-in/voice-in.service';
+import { VoiceService } from '../../../voice/voice.service';
 
 export default class JoinCommand implements Command {
   name = 'leave';
   description = 'Makes the bot leave the voice channel you are in.';
 
-  constructor(private readonly voiceInService: VoiceInService) {}
+  constructor(private readonly voiceInService: VoiceService) {}
 
   execute(message: Message) {
     const { guild } = message;

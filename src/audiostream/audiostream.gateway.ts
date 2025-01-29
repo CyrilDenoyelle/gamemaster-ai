@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { forwardRef, Inject, Logger } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
+import { VoiceService } from 'src/discord/voice/voice.service';
 
 @WebSocketGateway(80, {
   cors: {
@@ -18,6 +19,10 @@ import { Server, Socket } from 'socket.io';
 export class AudioStreamGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
+  constructor(
+    @Inject(forwardRef(() => VoiceService))
+    private readonly voiceInService: VoiceService,
+  ) {}
   @WebSocketServer()
   server: Server;
 
@@ -49,9 +54,38 @@ export class AudioStreamGateway
   @SubscribeMessage('transcribed-text')
   handleTranscribedText(socket: Socket, payload: string) {
     const { text } = JSON.parse(payload);
-    console.log('user_id', socket.handshake.headers.user_id);
+    const userId = socket.handshake.headers.user_id; // talking user
+    console.log('user_id', userId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
+    this.sendText(process.env.BOT_ID, text);
+  }
+
+  /**
+   * receive client 'transcribed-audio' event
+   * @param client
+   * @param payload
+   */
+  @SubscribeMessage('transcribed-audio')
+  handleTranscribedAudio(socket: Socket, filePath: string) {
+    console.log('handleTranscribedAudio', filePath);
+    const guildId = socket.handshake.headers.guild_id;
+    this.voiceInService.play(
+      Array.isArray(guildId) ? guildId[0] : guildId, // should be guildId
+      filePath,
+    );
+  }
+
+  /**
+   * Send text data to handshake.headers user_id connected clients
+   * @param text The audio data to broadcast
+   */
+  sendText(userId: string, text: string) {
+    if (!this.activeClients.has(userId)) {
+      this.logger.warn(`No active client with id: ${userId}`);
+      return;
+    }
+    this.activeClients.get(userId).emit('text', text);
   }
 
   /**

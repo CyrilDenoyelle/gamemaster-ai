@@ -3,7 +3,7 @@ import { CommandService } from '../command/command.service';
 import { Command } from './command.interface';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { VoiceInService } from '../../voice-in/voice-in.service';
+import { VoiceService } from '../../voice/voice.service';
 
 @Injectable()
 export class CommandLoader implements OnModuleInit {
@@ -12,7 +12,7 @@ export class CommandLoader implements OnModuleInit {
 
   constructor(
     private readonly commandService: CommandService,
-    private readonly voiceInService: VoiceInService,
+    private readonly voiceInService: VoiceService,
   ) {}
 
   async onModuleInit() {

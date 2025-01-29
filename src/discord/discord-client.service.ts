@@ -13,7 +13,7 @@ import {
 } from 'discord.js';
 import { MessageService } from './message/message.service';
 import { existsSync, readFileSync } from 'fs';
-import { VoiceInService } from './voice-in/voice-in.service';
+import { VoiceService } from './voice/voice.service';
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
@@ -22,7 +22,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly messageService: MessageService,
-    private readonly voiceInService: VoiceInService,
+    private readonly voiceInService: VoiceService,
   ) {
     this.client = new Client({
       intents: [
@@ -39,6 +39,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Initializing Discord Bot...');
     this.client.once('ready', () => {
       this.logger.log(`...Logged in as ${this.client.user?.tag}`);
+      process.env.BOT_ID = this.client.user?.id; // set bot id in env
       this.loadConnectedChannels();
     });
 

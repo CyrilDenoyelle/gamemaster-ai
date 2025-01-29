@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   joinVoiceChannel,
   VoiceConnection,
@@ -7,26 +7,30 @@ import {
   EndBehaviorType,
   AudioReceiveStream,
   VoiceReceiver,
+  createAudioResource,
 } from '@discordjs/voice';
 import { Guild, VoiceBasedChannel, VoiceChannel, VoiceState } from 'discord.js';
 import { join } from 'path';
 import { writeFileSync } from 'fs';
-import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
+import { AudioStreamGateway } from '../../audiostream/audiostream.gateway';
 import { OpusEncoder } from '@discordjs/opus';
 
 import { spawn } from 'child_process';
 
 @Injectable()
-export class VoiceInService {
-  private readonly logger = new Logger(VoiceInService.name);
-  private connections = new Map<string, VoiceConnection>(); // Guild ID -> VoiceConnection
+export class VoiceService {
+  private readonly logger = new Logger(VoiceService.name);
+  connections = new Map<string, VoiceConnection>(); // Guild ID -> VoiceConnection
   private audioPlayer = createAudioPlayer();
   private activeStreams = new Map<string, AudioReceiveStream>(); // User ID -> AudioReceiveStream
   readonly storageFile = join(__dirname, '../../../connected-channels.json');
   encoder = new OpusEncoder(48000, 1);
-  sttProcesses = new Map<string, ReturnType<typeof spawn>>(); // User ID -> spawn (Speech to text process)
+  childProcesses = new Map<string, ReturnType<typeof spawn>>(); // User ID -> spawn (Speech to text process)
 
-  constructor(private audioStreamGateway: AudioStreamGateway) {
+  constructor(
+    @Inject(forwardRef(() => AudioStreamGateway))
+    private audioStreamGateway: AudioStreamGateway,
+  ) {
     // Log player events for debugging
     this.audioPlayer.on(AudioPlayerStatus.Idle, () =>
       this.logger.log('Audio player is idle'),
@@ -50,11 +54,18 @@ export class VoiceInService {
 
     // users in the channel
     const users = channel.members.filter((member) => !member.user.bot);
+    const bots = channel.members.filter((member) => member.user.bot);
+
+    // create a speech to text instace foreach users
+    bots.forEach((user) => {
+      const childProcesse = this.spawnTtsInstance(user.id, channel.guild.id);
+      this.childProcesses.set(user.id, childProcesse);
+    });
 
     // create a speech to text instace foreach users
     users.forEach((user) => {
-      const sttProcess = this.spawnInstance(user.id);
-      this.sttProcesses.set(user.id, sttProcess);
+      const childProcesse = this.spawnSttInstance(user.id);
+      this.childProcesses.set(user.id, childProcesse);
     });
 
     const connection = joinVoiceChannel({
@@ -84,17 +95,17 @@ export class VoiceInService {
     const currentConnection = this.connections.get(newState.guild.id);
 
     if (
-      !this.sttProcesses.has(user.id) &&
+      !this.childProcesses.has(user.id) &&
       newState.channelId === currentConnection?.joinConfig.channelId
     ) {
-      const sttProcess = this.spawnInstance(user.id);
-      this.sttProcesses.set(user.id, sttProcess);
+      const sttProcess = this.spawnSttInstance(user.id);
+      this.childProcesses.set(user.id, sttProcess);
     } else if (
-      this.sttProcesses.has(user.id) &&
+      this.childProcesses.has(user.id) &&
       newState.channelId !== currentConnection?.joinConfig.channelId
     ) {
-      this.sttProcesses.get(user.id)?.kill();
-      this.sttProcesses.delete(user.id);
+      this.childProcesses.get(user.id)?.kill();
+      this.childProcesses.delete(user.id);
     }
 
     return;
@@ -104,7 +115,7 @@ export class VoiceInService {
    * Spawns a Vosk instance for a user.
    * @param userId The ID of the user.
    */
-  spawnInstance(userId: string): ReturnType<typeof spawn> {
+  spawnSttInstance(userId: string): ReturnType<typeof spawn> {
     const sttProcess = spawn('conda', [
       'run',
       '-n',
@@ -119,6 +130,34 @@ export class VoiceInService {
     sttProcess.on('close', (code) => {
       this.logger.log(
         `Vosk process for user ${userId} exited with code: ${code}`,
+      );
+    });
+    return sttProcess;
+  }
+
+  /**
+   * Spawns a Vosk instance for a user.
+   * @param userId The ID of the user.
+   */
+  spawnTtsInstance(userId: string, guildId: string): ReturnType<typeof spawn> {
+    console.log('spawnTtsInstance', userId);
+    const sttProcess = spawn('conda', [
+      'run',
+      '-n',
+      'cuda_env',
+      'python',
+      join(__dirname, '../../../melo-tts/meloSocketClient.py'),
+      '--userId',
+      userId,
+      '--guildId',
+      guildId,
+    ]);
+
+    this.logger.log(`Melo process for user ${userId} started`);
+
+    sttProcess.on('close', (code) => {
+      this.logger.log(
+        `Melo process for user ${userId} exited with code: ${code}`,
       );
     });
     return sttProcess;
@@ -174,6 +213,21 @@ export class VoiceInService {
   }
 
   /**
+   * Plays an audio file in the voice channel.
+   * @param filePath
+   */
+  play(guildId: string, filePath: string) {
+    const connection = this.connections.get(guildId);
+    if (!connection) {
+      this.logger.warn(`No active voice connection found for guild ${guildId}`);
+      return;
+    }
+    connection.subscribe(this.audioPlayer);
+    const resource = createAudioResource(filePath);
+    this.audioPlayer.play(resource);
+  }
+
+  /**
    * Cleans up when the user stops speaking or leaves the channel.
    * @param userId The ID of the user whose stream needs to be cleaned up.
    */
@@ -193,10 +247,10 @@ export class VoiceInService {
     const connection = this.connections.get(guild.id);
     if (connection) {
       connection.disconnect();
-      this.sttProcesses.forEach((sttProcess) => {
+      this.childProcesses.forEach((sttProcess) => {
         sttProcess.kill();
       });
-      this.sttProcesses.clear();
+      this.childProcesses.clear();
       this.connections.delete(guild.id);
       this.logger.log(`Left the voice channel in guild ${guild.id}`);
       this.saveConnectedChannels();
