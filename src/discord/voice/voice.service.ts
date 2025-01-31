@@ -138,7 +138,6 @@ export class VoiceService {
    * @param userId The ID of the user.
    */
   spawnTtsInstance(userId: string, guildId: string): ReturnType<typeof spawn> {
-    console.log('spawnTtsInstance', userId);
     const sttProcess = spawn('conda', [
       'run',
       '-n',
