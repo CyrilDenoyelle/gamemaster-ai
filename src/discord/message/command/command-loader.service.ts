@@ -12,7 +12,7 @@ export class CommandLoader implements OnModuleInit {
 
   constructor(
     private readonly commandService: CommandService,
-    private readonly voiceInService: VoiceService,
+    private readonly voiceService: VoiceService,
   ) {}
 
   async onModuleInit() {
@@ -32,7 +32,7 @@ export class CommandLoader implements OnModuleInit {
         continue;
       }
 
-      const command: Command = new CommandClass(this.voiceInService);
+      const command: Command = new CommandClass(this.voiceService);
 
       if (command && command.name && typeof command.execute === 'function') {
         this.commandService.registerCommand(
