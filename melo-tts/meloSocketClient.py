@@ -1,10 +1,9 @@
 import time
 timerStart = time.time()
 
+import os
 import torch
-import base64
 import argparse
-import numpy as np
 print(torch.__path__)
 print("torch.cuda.is_available()", torch.cuda.is_available())
 import socketio # pip install python-socketio
@@ -43,12 +42,16 @@ def on_text(text):
     print("Text received:", text)
     timerStart = time.time()
     speaker_ids = model.hps.data.spk2id
-    output_path=f"fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav"
+    # check if ttsOut folder exists
+    if not os.path.exists('./ttsOut'):
+        os.makedirs('./ttsOut')
+
+    output_path=f"./ttsOut/fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav"
     print(output_path)
     model.tts_to_file(
         text,
         speaker_ids['FR'],
-        output_path=f"fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav",
+        output_path=f"./ttsOut/fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav",
         speed=speed,
         # sdp_ratio=0.1,
         # noise_scale: float = 0.6,
