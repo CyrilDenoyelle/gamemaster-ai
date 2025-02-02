@@ -55,14 +55,14 @@ export class AudioStreamGateway
    * @param payload
    */
   @SubscribeMessage('transcribed-text')
-  handleTranscribedText(socket: Socket, payload: string) {
+  async handleTranscribedText(socket: Socket, payload: string) {
     const { text } = JSON.parse(payload);
     const userId = socket.handshake.headers.user_id; // talking user
     console.log('user_id', userId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
-    this.chatService.sendText({
-      text,
+    await this.chatService.sendMessage({
+      content: text,
       role: 'user',
       userId: Array.isArray(userId) ? userId[0] : userId,
     });
