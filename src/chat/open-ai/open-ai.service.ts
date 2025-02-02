@@ -10,7 +10,8 @@ export class OpenAiService {
   baseSettings = {
     model: process.env.OPENAI_CHAT_MODEL,
     max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS_BY_MESSAGE, 10),
-    temperature: parseInt(process.env.AI_TEMPERATURE, 10),
+    temperature: parseFloat(process.env.AI_TEMPERATURE),
+    frequency_penalty: parseFloat(process.env.AI_FREQUENCY_PENALTY),
   };
 
   constructor(
