@@ -6,7 +6,7 @@ export default class JoinCommand implements Command {
   name = 'joinme';
   description = 'Makes the bot join the voice channel you are in.';
 
-  constructor(private readonly voiceInService: VoiceService) {}
+  constructor(private readonly voiceService: VoiceService) {}
 
   execute(message: Message) {
     const { member, guild } = message;
@@ -22,7 +22,7 @@ export default class JoinCommand implements Command {
       return;
     }
 
-    this.voiceInService.joinChannel(voiceChannel);
+    this.voiceService.joinChannel(voiceChannel);
     message.reply(`Joined the voice channel: ${voiceChannel.name}`);
   }
 }

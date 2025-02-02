@@ -22,7 +22,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly messageService: MessageService,
-    private readonly voiceInService: VoiceService,
+    private readonly voiceService: VoiceService,
   ) {
     this.client = new Client({
       intents: [
@@ -51,7 +51,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.client.on(
       Events.VoiceStateUpdate,
       (oldState: VoiceState, newState: VoiceState) => {
-        this.voiceInService.handleVoiceStateUpdate(oldState, newState);
+        this.voiceService.handleVoiceStateUpdate(oldState, newState);
       },
     );
 
@@ -67,9 +67,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * Loads connected channels from storage and reconnects.
    */
   private async loadConnectedChannels() {
-    if (!existsSync(this.voiceInService.storageFile)) return;
+    if (!existsSync(this.voiceService.storageFile)) return;
     const data = JSON.parse(
-      readFileSync(this.voiceInService.storageFile, 'utf-8'),
+      readFileSync(this.voiceService.storageFile, 'utf-8'),
     );
     for (const { guildId, channelId } of data) {
       const guild = await this.getGuildById(guildId);
@@ -79,7 +79,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
         );
-        this.voiceInService.joinChannel(channel);
+        this.voiceService.joinChannel(channel);
       }
     }
     return;

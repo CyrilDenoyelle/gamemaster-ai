@@ -6,7 +6,10 @@ export default class JoinCommand implements Command {
   name = 'leave';
   description = 'Makes the bot leave the voice channel you are in.';
 
-  constructor(private readonly voiceService: VoiceService) {}
+  private voiceService: VoiceService;
+  constructor({ voiceService }: { voiceService: VoiceService }) {
+    this.voiceService = voiceService;
+  }
 
   execute(message: Message) {
     const { guild } = message;

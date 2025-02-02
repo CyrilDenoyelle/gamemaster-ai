@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VoiceService } from './voice.service';
 
-describe('VoiceInService', () => {
+describe('VoiceService', () => {
   let service: VoiceService;
 
   beforeEach(async () => {
