@@ -30,14 +30,26 @@ export class OpenAiService {
       ...this.baseSettings,
       messages: chat,
     });
-    this.audioStreamGateway.sendText(
-      answer.choices[0].message.content.replace('*', ''),
-    );
+    const textAnswer = answer.choices[0].message.content;
+    this.audioStreamGateway.sendText(textAnswer.replace(/\*/g, ''));
+    return textAnswer;
+  };
 
-    this.chatService.sendText({
-      role: 'assistant',
-      text: answer.choices[0].message.content,
-      userId: process.env.BOT_ID,
+  /**
+   * Send a message to the OpenAI chat model
+   * @param chat The messages to send
+   * @returns The response from the chat model
+   */
+  prompt = async (text: string) => {
+    const answer = await this.openai.chat.completions.create({
+      ...this.baseSettings,
+      messages: [
+        {
+          role: 'system',
+          content: text,
+        },
+      ],
     });
+    return answer.choices[0].message.content;
   };
 }

@@ -1,18 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OpenAiService } from './open-ai/open-ai.service';
 import { Chat } from 'openai/resources';
 import { isWithinTokenLimit } from 'gpt-tokenizer';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { PromptCompilerService } from 'src/prompt-compiler/prompt-compiler.service';
+
 @Injectable()
 export class ChatService {
-  constructor(private openAiService: OpenAiService) {}
+  currentChatName: string;
+  // chats: Map<string, { creationDate: Date; current: boolean }>;
+  messages: Chat.ChatCompletionMessageParam[] = [];
+  systemMessages: Chat.ChatCompletionMessageParam[] = [];
+  initialSystemMessage: string = `
+set(nom1|random(prompt(une liste de prénom masculin séparé par des pipes)))
+set(nom2|random(prompt(une liste de prénom feminins séparé par des pipes)))
+Crée une histoire immersive et originale qui répond aux critères suivants :
+Genre : setget(genre|random(prompt(une liste de genre d'histoires adaptées a du jeu de rôle, séparé par des pipes|1))).
+Style : setget(style|random(prompt(une liste de genre d'univers adaptées a du jeu de rôle, séparé par des pipes|1))).
+Cadre : prompt(décris en quelques lignes un univers du style "get(style)", avec ses lieux, qui sert au genre "get(genre)" en décrivant en détail le décor, en 3 lignes).
+Personnages joueurs : prompt(donne moi deux courte descripions de deux peronnages només: get(nom1) et get(nom2) en deux lignes chacune qui marche avec le genre "get(genre)").
+Intrigue : L’histoire doit inclure un enjeu principal. Une quête ou mission, un mystère à résoudre, un danger imminent, etc.). Avec des rebondissements imprévus.
+Développement : Intègre une montée en tension avec des obstacles significatifs, des dilemmes moraux ou émotionnels, et une résolution cohérente.
+Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un style narratif immersif.`;
 
-  chatHistory: Chat.ChatCompletionMessageParam[] = [];
-  systemMessages: Chat.ChatCompletionMessageParam[] = [
-    {
-      role: 'system',
-      content: 'You are a helpful assistant.',
-    },
-  ];
+  constructor(
+    private openAiService: OpenAiService,
+    @Inject(forwardRef(() => PromptCompilerService))
+    private promptCompiler: PromptCompilerService,
+  ) {}
 
   /**
    * Send text to the chat
@@ -20,15 +35,31 @@ export class ChatService {
    * @param text The text to send
    * @param userId The user ID of the sender
    */
-  sendText({ role, text, userId }) {
-    this.chatHistory.push({ role, content: text });
-    console.log(`Sending text from ${userId}: ${text}`);
+  async sendMessage({ role, content, userId }) {
+    this.messages.push({ role, content });
+    this.saveChat();
+    console.log(`${role}: ${content}`);
     if (role === 'user') {
       this.shiftMessagesUntilWithinLimit();
-      this.openAiService.sendChat([
+      const textAnswer = await this.openAiService.sendChat([
         ...this.systemMessages,
-        ...this.chatHistory,
+        ...this.messages,
+        {
+          role: 'system',
+          content: `Fin de la réponse des joueurs.
+Réponds aux joueurs de façon concise et précise.
+La longueur de ta réponse dépend de la situation, au maximum dix phrases.
+Uniquement ce que tu veux dire aux joueurs.
+Ne dit pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
+Ne parle pas à la place des joueurs, ne choisis pas leurs actions.
+`,
+        },
       ]);
+      await this.sendMessage({
+        role: 'assistant',
+        content: textAnswer,
+        userId: process.env.BOT_ID,
+      });
     }
   }
 
@@ -38,7 +69,7 @@ export class ChatService {
   shiftMessagesUntilWithinLimit = () => {
     const inlimite = () => {
       const tokenCount = isWithinTokenLimit(
-        [...this.systemMessages, ...this.chatHistory]
+        [...this.systemMessages, ...this.messages]
           .map((m) => `${m.role}: "${m.content}"\n`)
           .join(''),
         parseInt(process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN, 10),
@@ -50,7 +81,85 @@ export class ChatService {
     };
     while (inlimite() === false) {
       console.log('shift');
-      this.chatHistory.shift();
+      this.messages.shift();
     }
   };
+
+  setChat(chatName: string) {
+    this.currentChatName = chatName;
+    this.loadChat();
+  }
+
+  /**
+   * save current chat messages to chats/chatName file.
+   */
+  saveChat() {
+    // check if chats folder exists
+    if (!existsSync('chats')) {
+      mkdirSync('chats');
+    }
+    writeFileSync(
+      `chats/${this.currentChatName}.json`,
+      JSON.stringify(
+        {
+          systemMessages: this.systemMessages,
+          messages: this.messages,
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
+  /**
+   * create chat file.
+   */
+  async createChat() {
+    const compiled = await this.promptCompiler.exec(this.initialSystemMessage);
+    console.log('compiled', compiled);
+    this.systemMessages.push({
+      role: 'system',
+      content: compiled,
+    });
+    await this.sendMessage({
+      role: 'user',
+      content: `Tu est le maitre du jeu, lance le début de l'histoire pour les joueurs.
+        Tout ce que tu dis est important soit pour l'histoire soit pour l'ambiance.
+        Les joueurs n'ont pas lue ce qui précède ce message.
+        Les joueurs t'écoute.`,
+      userId: process.env.BOT_ID,
+    });
+    writeFileSync(
+      `chats/${this.currentChatName}.json`,
+      JSON.stringify(
+        {
+          systemMessages: this.systemMessages,
+          messages: this.messages,
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
+  /**
+   * load chat messages by name in chats/chatName file.
+   */
+  loadChat() {
+    // check if chats folder exists
+    if (!existsSync('chats')) {
+      mkdirSync('chats');
+      return;
+    }
+    // check if chat file exists
+    if (!existsSync(`chats/${this.currentChatName}.json`)) {
+      this.createChat();
+      return;
+    }
+    const chat = JSON.parse(
+      readFileSync(`chats/${this.currentChatName}.json`, 'utf-8'),
+    );
+    this.systemMessages = chat.systemMessages;
+    this.messages = chat.messages;
+  }
 }

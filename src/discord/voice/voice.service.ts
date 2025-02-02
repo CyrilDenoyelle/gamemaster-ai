@@ -16,6 +16,7 @@ import { AudioStreamGateway } from '../../audiostream/audiostream.gateway';
 import { OpusEncoder } from '@discordjs/opus';
 
 import { spawn } from 'child_process';
+import { ChatService } from 'src/chat/chat.service';
 
 @Injectable()
 export class VoiceService {
@@ -30,6 +31,8 @@ export class VoiceService {
   constructor(
     @Inject(forwardRef(() => AudioStreamGateway))
     private audioStreamGateway: AudioStreamGateway,
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
   ) {
     // Log player events for debugging
     this.audioPlayer.on(AudioPlayerStatus.Idle, () =>
@@ -52,7 +55,7 @@ export class VoiceService {
       return null;
     }
 
-    // create a speech to text instance for the bot
+    // create a text to speech instance for the bot
     const botId = process.env.BOT_ID;
     const childProcesse = this.spawnTtsInstance(botId, channel.guild.id);
     this.childProcesses.set(botId, childProcesse);
@@ -75,6 +78,7 @@ export class VoiceService {
     });
 
     this.logger.log(`Joined voice channel: ${channel.name}`);
+    this.chatService.setChat(channel.name);
 
     this.connections.set(channel.guild.id, connection);
     // log connections ids
