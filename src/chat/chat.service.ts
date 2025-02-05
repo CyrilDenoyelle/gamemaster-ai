@@ -1,15 +1,39 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OpenAiService } from './open-ai/open-ai.service';
 import { Chat } from 'openai/resources';
-import { isWithinTokenLimit } from 'gpt-tokenizer';
+import { encodeChat } from 'gpt-tokenizer/cjs/model/gpt-4o';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { PromptCompilerService } from 'src/prompt-compiler/prompt-compiler.service';
+import { ModelName } from 'gpt-tokenizer/esm/mapping';
+import { ChatMessage } from 'gpt-tokenizer/esm/GptEncoding';
+import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
+
+type restrictedChatMessage =
+  | Chat.ChatCompletionUserMessageParam
+  | Chat.ChatCompletionSystemMessageParam
+  | Chat.ChatCompletionAssistantMessageParam;
 
 @Injectable()
 export class ChatService {
   currentChatName: string;
   // chats: Map<string, { creationDate: Date; current: boolean }>;
-  messages: Chat.ChatCompletionMessageParam[] = [];
+  messages: restrictedChatMessage[] = [];
+  longTermMemory: restrictedChatMessage[] = [
+    {
+      role: 'system',
+      content: `Historique des événements importants de l'histoire:`,
+    },
+  ];
+  forgotenMessages: restrictedChatMessage[] = [];
+  postUserSystemMessage: restrictedChatMessage = {
+    role: 'system',
+    content: `Fin de la réponse des joueurs.
+Réponds aux joueurs de façon concise et précise.
+La longueur de ta réponse dépend de la situation, au maximum dix phrases.
+Uniquement ce que tu veux dire aux joueurs.
+Ne dit pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
+Ne parle pas à la place des joueurs, ne choisis pas leurs actions.`,
+  };
   systemMessages: Chat.ChatCompletionMessageParam[] = [];
   initialSystemMessage: string = `
 set(nom1|random(prompt(une liste de prénom masculin séparé par des pipes)))
@@ -27,7 +51,21 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
     private openAiService: OpenAiService,
     @Inject(forwardRef(() => PromptCompilerService))
     private promptCompiler: PromptCompilerService,
+    @Inject(forwardRef(() => AudioStreamGateway))
+    private audioStreamGateway: AudioStreamGateway,
   ) {}
+
+  /**
+   * Get the chat messages with the system messages, long term memory, messages, and post user system message
+   */
+  getChat(): Chat.ChatCompletionMessageParam[] {
+    return [
+      ...this.systemMessages,
+      ...this.longTermMemory,
+      ...this.messages,
+      this.postUserSystemMessage,
+    ];
+  }
 
   /**
    * Send text to the chat
@@ -40,21 +78,9 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
     this.saveChat();
     console.log(`${role}: ${content}`);
     if (role === 'user') {
-      this.shiftMessagesUntilWithinLimit();
-      const textAnswer = await this.openAiService.sendChat([
-        ...this.systemMessages,
-        ...this.messages,
-        {
-          role: 'system',
-          content: `Fin de la réponse des joueurs.
-Réponds aux joueurs de façon concise et précise.
-La longueur de ta réponse dépend de la situation, au maximum dix phrases.
-Uniquement ce que tu veux dire aux joueurs.
-Ne dit pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
-Ne parle pas à la place des joueurs, ne choisis pas leurs actions.
-`,
-        },
-      ]);
+      await this.shiftMessagesUntilWithinLimit();
+      const textAnswer = await this.openAiService.sendChat(this.getChat());
+      this.audioStreamGateway.sendText(textAnswer.replace(/\*/g, ''));
       await this.sendMessage({
         role: 'assistant',
         content: textAnswer,
@@ -64,26 +90,42 @@ Ne parle pas à la place des joueurs, ne choisis pas leurs actions.
   }
 
   /**
+   * Get the number of tokens in the chat
+   */
+  tokenCount() {
+    const chat = this.getChat() as ChatMessage[];
+    const tokens = encodeChat(chat, process.env.OPENAI_CHAT_MODEL as ModelName);
+    return tokens.length;
+  }
+
+  /**
    * shift messages until total tokens is less than process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN
    */
-  shiftMessagesUntilWithinLimit = () => {
-    const inlimite = () => {
-      const tokenCount = isWithinTokenLimit(
-        [...this.systemMessages, ...this.messages]
-          .map((m) => `${m.role}: "${m.content}"\n`)
-          .join(''),
-        parseInt(process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN, 10),
-      );
-      if (tokenCount) {
-        console.log('tokenCount', tokenCount);
-      }
-      return tokenCount;
-    };
-    while (inlimite() === false) {
-      console.log('shift');
-      this.messages.shift();
+  async shiftMessagesUntilWithinLimit() {
+    const tokenCount = this.tokenCount();
+    if (
+      tokenCount > parseInt(process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN, 10)
+    ) {
+      const forgotenMessage: restrictedChatMessage = this.messages.shift();
+      this.forgotenMessages.push(forgotenMessage);
+      const resume = await this.openAiService.sendChat([
+        {
+          role: 'system',
+          content:
+            "resume les messages du l'utilisateur en gardant uniquement les infos importantes en une courte phrase:",
+        },
+        {
+          role: 'user',
+          content: forgotenMessage.content as string,
+        },
+      ]);
+      this.longTermMemory.push({
+        role: forgotenMessage.role,
+        content: resume as string,
+      });
+      return await this.shiftMessagesUntilWithinLimit();
     }
-  };
+  }
 
   setChat(chatName: string) {
     this.currentChatName = chatName;
@@ -103,6 +145,8 @@ Ne parle pas à la place des joueurs, ne choisis pas leurs actions.
       JSON.stringify(
         {
           systemMessages: this.systemMessages,
+          forgotenMessages: this.forgotenMessages,
+          longTermMemory: this.longTermMemory,
           messages: this.messages,
         },
         null,
@@ -159,7 +203,9 @@ Ne parle pas à la place des joueurs, ne choisis pas leurs actions.
     const chat = JSON.parse(
       readFileSync(`chats/${this.currentChatName}.json`, 'utf-8'),
     );
-    this.systemMessages = chat.systemMessages;
-    this.messages = chat.messages;
+    this.systemMessages = chat.systemMessages || [];
+    this.forgotenMessages = chat.forgotenMessages || [];
+    this.longTermMemory = chat.longTermMemory || [];
+    this.messages = chat.messages || [];
   }
 }

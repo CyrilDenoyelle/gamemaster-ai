@@ -1,7 +1,5 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
-import { ChatService } from '../chat.service';
 import { Chat } from 'openai/resources';
 @Injectable()
 export class OpenAiService {
@@ -14,12 +12,7 @@ export class OpenAiService {
     frequency_penalty: parseFloat(process.env.AI_FREQUENCY_PENALTY),
   };
 
-  constructor(
-    @Inject(forwardRef(() => AudioStreamGateway))
-    private audioStreamGateway: AudioStreamGateway,
-    @Inject(forwardRef(() => ChatService))
-    private chatService: ChatService,
-  ) {}
+  constructor() {}
 
   /**
    * Send a message to the OpenAI chat model
@@ -31,9 +24,7 @@ export class OpenAiService {
       ...this.baseSettings,
       messages: chat,
     });
-    const textAnswer = answer.choices[0].message.content;
-    this.audioStreamGateway.sendText(textAnswer.replace(/\*/g, ''));
-    return textAnswer;
+    return answer.choices[0].message.content;
   };
 
   /**
