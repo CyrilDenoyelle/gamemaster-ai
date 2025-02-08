@@ -27,12 +27,11 @@ export class ChatService {
   forgotenMessages: restrictedChatMessage[] = [];
   postUserSystemMessage: restrictedChatMessage = {
     role: 'system',
-    content: `Fin de la réponse des joueurs.
-Réponds aux joueurs de façon concise et précise.
+    content: `Réponds aux joueurs de façon concise et précise.
 La longueur de ta réponse dépend de la situation, au maximum dix phrases.
 Uniquement ce que tu veux dire aux joueurs.
-Ne dit pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
-Ne parle pas à la place des joueurs, ne choisis pas leurs actions.`,
+Ne dis pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
+Ne parle pas à la place des personnages joueurs, ne choisis pas leurs actions mais propose-leur indirectement des options.`,
   };
   systemMessages: Chat.ChatCompletionMessageParam[] = [];
   initialSystemMessage: string = `
