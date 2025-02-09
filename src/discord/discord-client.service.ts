@@ -68,19 +68,16 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    */
   private async loadConnectedChannels() {
     if (!existsSync(this.voiceService.storageFile)) return;
-    const data = JSON.parse(
+    const { guildId, channelId } = JSON.parse(
       readFileSync(this.voiceService.storageFile, 'utf-8'),
     );
-    for (const { guildId, channelId } of data) {
-      const guild = await this.getGuildById(guildId);
-      const channel = guild?.channels.resolve(channelId) as VoiceChannel;
-
-      if (channel) {
-        this.logger.log(
-          `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
-        );
-        this.voiceService.joinChannel(channel);
-      }
+    const guild = await this.getGuildById(guildId);
+    const channel = guild?.channels.resolve(channelId) as VoiceChannel;
+    if (channel) {
+      this.logger.log(
+        `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
+      );
+      this.voiceService.joinChannel(channel);
     }
     return;
   }

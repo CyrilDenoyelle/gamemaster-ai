@@ -21,10 +21,10 @@ import { ChatService } from 'src/chat/chat.service';
 @Injectable()
 export class VoiceService {
   private readonly logger = new Logger(VoiceService.name);
-  connections = new Map<string, VoiceConnection>(); // Guild ID -> VoiceConnection
+  connection: VoiceConnection; // Guild ID -> VoiceConnection
   private audioPlayer = createAudioPlayer();
   private activeStreams = new Map<string, AudioReceiveStream>(); // User ID -> AudioReceiveStream
-  readonly storageFile = join(__dirname, '../../../connected-channels.json');
+  readonly storageFile = join(__dirname, '../../../connected-channel.json');
   encoder = new OpusEncoder(48000, 1);
   childProcesses = new Map<string, ReturnType<typeof spawn>>(); // User ID -> spawn (Speech to text process)
 
@@ -69,7 +69,7 @@ export class VoiceService {
       this.childProcesses.set(user.id, childProcesse);
     });
 
-    const connection = joinVoiceChannel({
+    this.connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
@@ -80,31 +80,29 @@ export class VoiceService {
     this.logger.log(`Joined voice channel: ${channel.name}`);
     this.chatService.setChat(channel.name);
 
-    this.connections.set(channel.guild.id, connection);
     // log connections ids
     this.saveConnectedChannels();
 
     // Start listening for user audio
-    this.listenToUserAudio(connection);
+    this.listenToUserAudio(this.connection);
 
-    return connection;
+    return this.connection;
   }
 
   handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
     const user = oldState.member.user;
     if (user.bot) return;
     // current voice channel of the bot
-    const currentConnection = this.connections.get(newState.guild.id);
 
     if (
       !this.childProcesses.has(user.id) &&
-      newState.channelId === currentConnection?.joinConfig.channelId
+      newState.channelId === this.connection?.joinConfig.channelId
     ) {
       const sttProcess = this.spawnSttInstance(user.id);
       this.childProcesses.set(user.id, sttProcess);
     } else if (
       this.childProcesses.has(user.id) &&
-      newState.channelId !== currentConnection?.joinConfig.channelId
+      newState.channelId !== this.connection?.joinConfig.channelId
     ) {
       this.childProcesses.get(user.id)?.kill();
       this.childProcesses.delete(user.id);
@@ -218,12 +216,11 @@ export class VoiceService {
    * @param filePath
    */
   play(guildId: string, filePath: string) {
-    const connection = this.connections.get(guildId);
-    if (!connection) {
+    if (!this.connection) {
       this.logger.warn(`No active voice connection found for guild ${guildId}`);
       return;
     }
-    connection.subscribe(this.audioPlayer);
+    this.connection.subscribe(this.audioPlayer);
     const resource = createAudioResource(filePath);
     this.audioPlayer.play(resource);
   }
@@ -245,14 +242,13 @@ export class VoiceService {
    * @param guild The Discord guild to disconnect from.
    */
   leaveChannel(guild: Guild) {
-    const connection = this.connections.get(guild.id);
-    if (connection) {
-      connection.disconnect();
+    if (this.connection) {
+      this.connection.disconnect();
       this.childProcesses.forEach((sttProcess) => {
         sttProcess.kill();
       });
       this.childProcesses.clear();
-      this.connections.delete(guild.id);
+      this.connection = null;
       this.logger.log(`Left the voice channel in guild ${guild.id}`);
       this.saveConnectedChannels();
     } else {
@@ -266,15 +262,17 @@ export class VoiceService {
    * Saves the connected channels to a file.
    */
   private saveConnectedChannels() {
-    const data = Array.from(this.connections.keys()).map((guildId) => {
-      const connection = this.connections.get(guildId);
-      return {
-        guildId,
-        channelId: connection?.joinConfig.channelId,
-      };
-    });
-
-    writeFileSync(this.storageFile, JSON.stringify(data, null, 2));
+    writeFileSync(
+      this.storageFile,
+      JSON.stringify(
+        {
+          guildId: this.connection?.joinConfig.guildId,
+          channelId: this.connection?.joinConfig.channelId,
+        },
+        null,
+        2,
+      ),
+    );
     this.logger.log('Connected channels saved to storage.');
   }
 }
