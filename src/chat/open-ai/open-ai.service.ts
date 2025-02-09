@@ -17,11 +17,16 @@ export class OpenAiService {
   /**
    * Send a message to the OpenAI chat model
    * @param chat The messages to send
+   * @param model The model to use
    * @returns The response from the chat model
    */
-  sendChat = async (chat: Chat.ChatCompletionMessageParam[]) => {
+  sendChat = async (
+    chat: Chat.ChatCompletionMessageParam[],
+    model: string = this.baseSettings.model,
+  ): Promise<string> => {
     const answer = await this.openai.chat.completions.create({
       ...this.baseSettings,
+      model: model,
       messages: chat,
     });
     return answer.choices[0].message.content;
@@ -29,7 +34,7 @@ export class OpenAiService {
 
   /**
    * Send a message to the OpenAI chat model
-   * @param chat The messages to send
+   * @param text The message to send
    * @returns The response from the chat model
    */
   prompt = async (text: string) => {
