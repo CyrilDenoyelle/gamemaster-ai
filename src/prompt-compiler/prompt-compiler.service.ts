@@ -3,7 +3,7 @@ import { OpenAiService } from 'src/chat/open-ai/open-ai.service';
 
 @Injectable()
 export class PromptCompilerService {
-  getRegex = () => /(\w+)\(((?:[^()]+|\((?:[^()]+|\([^()]*\))*\))*)\)/g;
+  getRegex = () => /(\w+)\((?:([^()]+)\))/;
 
   constructor(
     @Inject(forwardRef(() => OpenAiService))
@@ -17,7 +17,7 @@ export class PromptCompilerService {
         return str;
       }
       const f = match[1];
-      const args = await recursiveReplace(match[2]);
+      const args = match[2];
       if (typeof this[f] !== 'function') {
         console.log('------------------');
         console.log('no function', f);
