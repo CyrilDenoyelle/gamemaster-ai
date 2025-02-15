@@ -18,7 +18,7 @@ parser.add_argument('--guildId', type=str, required=True, help='Guild ID')
 args = parser.parse_args()
 
 # Speed is adjustable
-speed = 1.25
+speed = 1.15
 device = 'cuda' # or cpu
 
 model = TTS(language='FR', device=device)
