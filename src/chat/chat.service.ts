@@ -111,7 +111,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
         {
           role: 'system',
           content:
-            'resume ce message en gardant uniquement les infos importantes en une courte phrase:',
+            'resume ce message en gardant uniquement les infos importantes en une courte phrase',
         },
         {
           role: 'user',
