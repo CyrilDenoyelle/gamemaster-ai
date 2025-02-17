@@ -12,8 +12,8 @@ import {
     {
       provide: 'ChatServiceFactory',
       useFactory: (openAiService: OpenAiService): ChatServiceFactory => {
-        return (name: string, args: ChatServiceFactoryChats) =>
-          new ChatService(name, args, openAiService);
+        return (args: ChatServiceFactoryChats) =>
+          new ChatService(args, openAiService);
       },
       inject: [OpenAiService],
     },
