@@ -16,7 +16,7 @@ import { AudioStreamGateway } from '../../audiostream/audiostream.gateway';
 import { OpusEncoder } from '@discordjs/opus';
 
 import { spawn } from 'child_process';
-import { ChatService } from 'src/chat/chat.service';
+import { GameService } from 'src/game/game.service';
 
 @Injectable()
 export class VoiceService {
@@ -31,8 +31,8 @@ export class VoiceService {
   constructor(
     @Inject(forwardRef(() => AudioStreamGateway))
     private audioStreamGateway: AudioStreamGateway,
-    @Inject(forwardRef(() => ChatService))
-    private chatService: ChatService,
+    @Inject(forwardRef(() => GameService))
+    private gameService: GameService,
   ) {
     // Log player events for debugging
     this.audioPlayer.on(AudioPlayerStatus.Idle, () =>
@@ -78,7 +78,7 @@ export class VoiceService {
     });
 
     this.logger.log(`Joined voice channel: ${channel.name}`);
-    this.chatService.setChat(channel.name);
+    this.gameService.setGame(channel.name);
 
     // log connections ids
     this.saveConnectedChannels();

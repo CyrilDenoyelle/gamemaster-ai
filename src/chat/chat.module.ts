@@ -1,15 +1,23 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { AudioStreamModule } from 'src/audiostream/audiostream.module';
-import { ChatService } from './chat.service';
+import { Module } from '@nestjs/common';
 import { OpenAiService } from './open-ai/open-ai.service';
-import { PromptCompilerModule } from 'src/prompt-compiler/prompt-compiler.module';
+import {
+  ChatService,
+  ChatServiceFactory,
+  ChatServiceFactoryChats,
+} from './chat.service';
 
 @Module({
-  imports: [
-    forwardRef(() => AudioStreamModule),
-    forwardRef(() => PromptCompilerModule),
+  providers: [
+    OpenAiService,
+    {
+      provide: 'ChatServiceFactory',
+      useFactory: (openAiService: OpenAiService): ChatServiceFactory => {
+        return (name: string, args: ChatServiceFactoryChats) =>
+          new ChatService(name, args, openAiService);
+      },
+      inject: [OpenAiService],
+    },
   ],
-  providers: [ChatService, OpenAiService],
-  exports: [ChatService, OpenAiService],
+  exports: ['ChatServiceFactory'],
 })
 export class ChatModule {}
