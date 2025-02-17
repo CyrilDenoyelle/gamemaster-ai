@@ -1,10 +1,10 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { VoiceService } from './voice.service';
 import { AudioStreamModule } from '../../audiostream/audiostream.module';
-import { ChatModule } from 'src/chat/chat.module';
+import { GameModule } from 'src/game/game.module';
 
 @Module({
-  imports: [forwardRef(() => AudioStreamModule), ChatModule],
+  imports: [forwardRef(() => AudioStreamModule), GameModule],
   providers: [VoiceService],
   exports: [VoiceService],
 })

@@ -4,7 +4,7 @@ import { Command } from './command.interface';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { VoiceService } from '../../voice/voice.service';
-import { ChatService } from 'src/chat/chat.service';
+import { GameService } from 'src/game/game.service';
 
 @Injectable()
 export class CommandLoader implements OnModuleInit {
@@ -14,7 +14,7 @@ export class CommandLoader implements OnModuleInit {
   constructor(
     private readonly commandService: CommandService,
     private readonly voiceService: VoiceService,
-    private readonly chatService: ChatService,
+    private readonly gameService: GameService,
   ) {}
 
   async onModuleInit() {
@@ -36,7 +36,7 @@ export class CommandLoader implements OnModuleInit {
 
       const command: Command = new CommandClass({
         voiceService: this.voiceService,
-        chatService: this.chatService,
+        gameService: this.gameService,
       });
 
       if (command && command.name && typeof command.execute === 'function') {

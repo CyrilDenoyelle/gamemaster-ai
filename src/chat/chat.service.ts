@@ -1,12 +1,21 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OpenAiService } from './open-ai/open-ai.service';
 import { Chat } from 'openai/resources';
-import { encodeChat } from 'gpt-tokenizer/cjs/model/gpt-4o';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { PromptCompilerService } from 'src/prompt-compiler/prompt-compiler.service';
-import { ModelName } from 'gpt-tokenizer/esm/mapping';
+import { encodeChat } from 'gpt-tokenizer';
 import { ChatMessage } from 'gpt-tokenizer/esm/GptEncoding';
-import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
+import { ModelName } from 'gpt-tokenizer/esm/mapping';
+
+export type ChatServiceFactoryChats = {
+  readonly messages?: restrictedChatMessage[];
+  readonly systemMessages?: Chat.ChatCompletionMessageParam[];
+  readonly longTermMemory?: restrictedChatMessage[];
+  readonly forgotenMessages?: restrictedChatMessage[];
+};
+
+export type ChatServiceFactory = (
+  name?: string,
+  args?: ChatServiceFactoryChats,
+) => ChatService;
 
 type restrictedChatMessage =
   | Chat.ChatCompletionUserMessageParam
@@ -15,77 +24,76 @@ type restrictedChatMessage =
 
 @Injectable()
 export class ChatService {
-  currentChatName: string;
-  // chats: Map<string, { creationDate: Date; current: boolean }>;
   messages: restrictedChatMessage[] = [];
-  longTermMemory: restrictedChatMessage[] = [
-    {
-      role: 'system',
-      content: `Historique des événements importants de l'histoire:`,
-    },
-  ];
-  forgotenMessages: restrictedChatMessage[] = [];
-  postUserSystemMessage: restrictedChatMessage = {
-    role: 'system',
-    content: `Réponds aux joueurs de façon concise et précise.
-La longueur de ta réponse dépend de la situation, au maximum dix phrases.
-Uniquement ce que tu veux dire aux joueurs.
-Ne dis pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
-Ne parle pas à la place des personnages joueurs, ne choisis pas leurs actions mais propose-leur indirectement des options.`,
-  };
   systemMessages: Chat.ChatCompletionMessageParam[] = [];
-  initialSystemMessage: string = `
-set(nom1|random(prompt(une liste de prénom masculin séparé par des pipes)))
-set(nom2|random(prompt(une liste de prénom feminins séparé par des pipes)))
-Crée une histoire immersive et originale qui répond aux critères suivants :
-Genre : setget(genre|random(prompt(une liste de genre d'histoires adaptées a du jeu de rôle, séparé par des pipes|1))).
-Style : setget(style|random(prompt(une liste de genre d'univers adaptées a du jeu de rôle, séparé par des pipes|1))).
-Cadre : prompt(décris en quelques lignes un univers du style "get(style)", avec ses lieux, qui sert au genre "get(genre)" en décrivant en détail le décor, en 3 lignes).
-Personnages joueurs : prompt(donne moi deux courte descripions de deux peronnages només: get(nom1) et get(nom2) en deux lignes chacune qui marche avec le genre "get(genre)").
-Intrigue : L’histoire doit inclure un enjeu principal. Une quête ou mission, un mystère à résoudre, un danger imminent, etc.). Avec des rebondissements imprévus.
-Développement : Intègre une montée en tension avec des obstacles significatifs, des dilemmes moraux ou émotionnels, et une résolution cohérente.
-Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un style narratif immersif.`;
-
+  longTermMemory: restrictedChatMessage[] = [];
+  forgotenMessages: restrictedChatMessage[] = [];
   constructor(
-    private openAiService: OpenAiService,
-    @Inject(forwardRef(() => PromptCompilerService))
-    private promptCompiler: PromptCompilerService,
-    @Inject(forwardRef(() => AudioStreamGateway))
-    private audioStreamGateway: AudioStreamGateway,
-  ) {}
+    private readonly name: string,
+    args: ChatServiceFactoryChats,
+    private readonly openAiService: OpenAiService,
+  ) {
+    const {
+      messages = [],
+      systemMessages = [],
+      longTermMemory = [],
+      forgotenMessages = [],
+    } = args;
 
-  /**
-   * Get the chat messages with the system messages, long term memory, messages, and post user system message
-   */
-  getChat(): Chat.ChatCompletionMessageParam[] {
-    return [
-      ...this.systemMessages,
-      ...this.longTermMemory,
-      ...this.messages,
-      this.postUserSystemMessage,
-    ];
+    this.messages.push(...messages);
+    this.systemMessages.push(...systemMessages);
+    this.longTermMemory.push(...longTermMemory);
+    this.forgotenMessages.push(...forgotenMessages);
   }
 
   /**
    * Send text to the chat
    * @param role The role of the user sending the text
-   * @param text The text to send
-   * @param userId The user ID of the sender
+   * @param content The text to send
    */
-  async sendMessage({ role, content, userId }) {
-    this.messages.push({ role, content });
-    this.saveChat();
-    console.log(`${role}: ${content}`);
-    if (role === 'user') {
-      await this.shiftMessagesUntilWithinLimit();
-      const textAnswer = await this.openAiService.sendChat(this.getChat());
-      this.audioStreamGateway.sendText(textAnswer.replace(/\*/g, ''));
-      await this.sendMessage({
-        role: 'assistant',
-        content: textAnswer,
-        userId: process.env.BOT_ID,
-      });
-    }
+  async sendMessage(message: restrictedChatMessage) {
+    this.push(message);
+    await this.shiftMessagesUntilWithinLimit();
+    const textAnswer = await this.openAiService.sendChat(this.getChat());
+    this.push({ role: 'assistant', content: textAnswer });
+    return textAnswer;
+  }
+
+  /**
+   * Push messages to the chat
+   * @param messages The messages to push
+   */
+  push(...messages: restrictedChatMessage[]) {
+    this.messages.push(...messages);
+    // this.saveChat();
+  }
+
+  set({
+    messages,
+    systemMessages,
+    longTermMemory,
+    forgotenMessages,
+  }: ChatServiceFactoryChats) {
+    this.systemMessages = systemMessages;
+    this.messages = messages;
+    this.longTermMemory = longTermMemory;
+    this.forgotenMessages = forgotenMessages;
+  }
+
+  get(): ChatServiceFactoryChats {
+    return {
+      systemMessages: this.systemMessages,
+      messages: this.messages,
+      longTermMemory: this.longTermMemory,
+      forgotenMessages: this.forgotenMessages,
+    };
+  }
+
+  /**
+   * Get the chat messages with the system messages, long term memory, messages, and post user system message
+   */
+  getChat(): Chat.ChatCompletionMessageParam[] {
+    return [...this.systemMessages, ...this.longTermMemory, ...this.messages];
   }
 
   /**
@@ -124,87 +132,5 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
       });
       return await this.shiftMessagesUntilWithinLimit();
     }
-  }
-
-  setChat(chatName: string) {
-    this.currentChatName = chatName;
-    this.loadChat();
-  }
-
-  /**
-   * save current chat messages to chats/chatName file.
-   */
-  saveChat() {
-    // check if chats folder exists
-    if (!existsSync('chats')) {
-      mkdirSync('chats');
-    }
-    writeFileSync(
-      `chats/${this.currentChatName}.json`,
-      JSON.stringify(
-        {
-          systemMessages: this.systemMessages,
-          forgotenMessages: this.forgotenMessages,
-          longTermMemory: this.longTermMemory,
-          messages: this.messages,
-        },
-        null,
-        2,
-      ),
-    );
-  }
-
-  /**
-   * create chat file.
-   */
-  async createChat() {
-    const compiled = await this.promptCompiler.exec(this.initialSystemMessage);
-    console.log('compiled', compiled);
-    this.systemMessages.push({
-      role: 'system',
-      content: compiled,
-    });
-    await this.sendMessage({
-      role: 'user',
-      content: `Tu est le maitre du jeu, lance le début de l'histoire pour les joueurs.
-        Tout ce que tu dis est important soit pour l'histoire soit pour l'ambiance.
-        Les joueurs n'ont pas lue ce qui précède ce message.
-        Les joueurs t'écoute.`,
-      userId: process.env.BOT_ID,
-    });
-    writeFileSync(
-      `chats/${this.currentChatName}.json`,
-      JSON.stringify(
-        {
-          systemMessages: this.systemMessages,
-          messages: this.messages,
-        },
-        null,
-        2,
-      ),
-    );
-  }
-
-  /**
-   * load chat messages by name in chats/chatName file.
-   */
-  loadChat() {
-    // check if chats folder exists
-    if (!existsSync('chats')) {
-      mkdirSync('chats');
-      return;
-    }
-    // check if chat file exists
-    if (!existsSync(`chats/${this.currentChatName}.json`)) {
-      this.createChat();
-      return;
-    }
-    const chat = JSON.parse(
-      readFileSync(`chats/${this.currentChatName}.json`, 'utf-8'),
-    );
-    this.systemMessages = chat.systemMessages || [];
-    this.forgotenMessages = chat.forgotenMessages || [];
-    this.longTermMemory = chat.longTermMemory || [];
-    this.messages = chat.messages || [];
   }
 }
