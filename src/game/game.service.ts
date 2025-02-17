@@ -17,17 +17,6 @@ type restrictedChatMessage =
 @Injectable()
 export class GameService {
   currentGameName: string;
-  // chats: Map<string, { creationDate: Date; current: boolean }>;
-  forgotenMessages: restrictedChatMessage[] = [];
-  postUserSystemMessage: restrictedChatMessage = {
-    role: 'system',
-    content: `Réponds aux joueurs de façon concise et précise.
-La longueur de ta réponse dépend de la situation, au maximum dix phrases.
-Uniquement ce que tu veux dire aux joueurs.
-Ne dis pas ce que les joueurs savent déjà, mais ce qu'ils voient, entendent, etc.
-Ne parle pas à la place des personnages joueurs, ne choisis pas leurs actions mais propose-leur indirectement des options.`,
-  };
-  systemMessages: Chat.ChatCompletionMessageParam[] = [];
   initialSystemMessage: string = `
 set(nom1|random(prompt(une liste de prénom masculin séparé par des pipes)))
 set(nom2|random(prompt(une liste de prénom feminins séparé par des pipes)))
@@ -73,7 +62,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
   }
 
   /**
-   * create chat file.
+   * create game files.
    */
   async createGame() {
     const compiled = await this.promptCompiler.exec(this.initialSystemMessage);
