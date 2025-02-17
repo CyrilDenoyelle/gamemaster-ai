@@ -13,7 +13,6 @@ export type ChatServiceFactoryChats = {
 };
 
 export type ChatServiceFactory = (
-  name?: string,
   args?: ChatServiceFactoryChats,
 ) => ChatService;
 
@@ -29,7 +28,6 @@ export class ChatService {
   longTermMemory: restrictedChatMessage[] = [];
   forgotenMessages: restrictedChatMessage[] = [];
   constructor(
-    private readonly name: string,
     args: ChatServiceFactoryChats,
     private readonly openAiService: OpenAiService,
   ) {

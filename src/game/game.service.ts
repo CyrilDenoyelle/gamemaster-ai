@@ -30,6 +30,7 @@ Développement : Intègre une montée en tension avec des obstacles significatif
 Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un style narratif immersif.`;
 
   private gameState: { [key: string]: unknown } = {};
+  private mainChat: ChatService;
   private chats: { [key: string]: ChatService } = {};
   constructor(
     @Inject(forwardRef(() => PromptCompilerService))
@@ -53,9 +54,8 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
    * send message to chat.
    */
   async sendMessage(message: restrictedChatMessage) {
-    const mainChat = this.chats.mainChat;
-    if (mainChat) {
-      const answer = await mainChat.sendMessage(message);
+    if (this.mainChat) {
+      const answer = await this.mainChat.sendMessage(message);
       this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
     }
     this.saveGame();
@@ -66,16 +66,27 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
    */
   async createGame() {
     const compiled = await this.promptCompiler.exec(this.initialSystemMessage);
-    this.chats.mainChat = this.chatServiceFactory('mainChat', {
-      systemMessages: [{ role: 'system', content: compiled }],
+    this.mainChat = this.chatServiceFactory({
+      systemMessages: [
+        { role: 'system', content: compiled },
+        {
+          role: 'system',
+          content: `Tu es le maître du jeu.
+Ton rôle est d'être le narrateur et d'incarner l'univers ainsi que les personnages non-joueurs.
+
+**Ne prends jamais de décision à la place des joueurs.**
+**Ne décris jamais leurs actions, pensées ou dialogues.**
+**Si une incertitude existe sur leurs choix, pose-leur la question au lieu de décider à leur place.**
+
+Tout ce que tu dis doit: soit faire avancer l'histoire, soit renforcer l'ambiance.
+Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturellement vers leur objectif actuel.`,
+        },
+      ],
     });
-    const mainChat = this.chats.mainChat;
+    const mainChat = this.mainChat;
     const answer = await mainChat.sendMessage({
       role: 'system',
-      content: `Tu est le maitre du jeu, lance le début de l'histoire pour les joueurs.
-        Tout ce que tu dis est important soit pour l'histoire soit pour l'ambiance.
-        Les joueurs n'ont pas lue ce qui précède ce message.
-        Les joueurs t'écoute.`,
+      content: `lance le début de l'histoire pour les joueurs.`,
       // userId: process.env.BOT_ID,
     });
     this.audioStreamGateway.sendText(answer);
@@ -129,7 +140,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
     );
     Object.entries(chats).map(
       ([chatName, chat]: [string, ChatServiceFactoryChats]) => {
-        this.chats[chatName] = this.chatServiceFactory(chatName, chat);
+        this.chats[chatName] = this.chatServiceFactory(chat);
       },
     );
 
