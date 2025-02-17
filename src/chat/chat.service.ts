@@ -68,6 +68,14 @@ export class ChatService {
     // this.saveChat();
   }
 
+  /**
+   * Sets chat service properties.
+   * @param {ChatServiceFactoryChats} chatFactory - An object containing the chat service properties.
+   * @param {restrictedChatMessage[]} chatFactory.messages - The list of messages in the chat.
+   * @param {Chat.ChatCompletionMessageParam[]} chatFactory.systemMessages - The list of system messages in the chat.
+   * @param {restrictedChatMessage[]} chatFactory.longTermMemory - The long-term memory associated with the chat.
+   * @param {restrictedChatMessage[]} chatFactory.forgotenMessages - The list of forgotten messages in the chat.
+   */
   set({
     messages,
     systemMessages,
@@ -80,6 +88,9 @@ export class ChatService {
     this.forgotenMessages = forgotenMessages;
   }
 
+  /**
+   * Get all the chats
+   */
   get(): ChatServiceFactoryChats {
     return {
       systemMessages: this.systemMessages,
