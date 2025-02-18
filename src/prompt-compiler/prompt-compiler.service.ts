@@ -4,12 +4,16 @@ import { OpenAiService } from 'src/chat/open-ai/open-ai.service';
 @Injectable()
 export class PromptCompilerService {
   getRegex = () => /(\w+)\((?:([^()]+)\))/;
+  objectResult = {};
 
   constructor(
     @Inject(forwardRef(() => OpenAiService))
     private openAiService: OpenAiService,
   ) {}
-  async exec(prompt: string): Promise<string> {
+  async exec(
+    prompt: string,
+  ): Promise<{ promptResult: string; objectResult: Record<string, string> }> {
+    this.objectResult = {};
     const recursiveReplace = async (str) => {
       const match = this.getRegex().exec(str);
       if (!match) {
@@ -27,32 +31,33 @@ export class PromptCompilerService {
       return await recursiveReplace(str);
     };
 
-    return await recursiveReplace(prompt);
+    const promptResult = await recursiveReplace(prompt);
+    return { promptResult, objectResult: this.objectResult };
   }
 
-  private async set(arg) {
+  private async set(arg: string) {
     const [key, value] = arg.split('|');
-    this[key] = value;
+    this.objectResult[key] = value;
     return '';
   }
 
-  private async setget(arg) {
+  private async setget(arg: string) {
     const [key, value] = arg.split('|');
-    this[key] = value;
+    this.objectResult[key] = value;
     return value;
   }
 
-  private async get(arg) {
+  private async get(arg: string) {
     const [key] = arg.split('|');
-    return this[key];
+    return this.objectResult[key];
   }
 
-  private async random(args) {
+  private async random(args: string) {
     const [...arr] = args.split('|');
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  private async prompt(args) {
+  private async prompt(args: string) {
     const [prompt] = args.split('|');
     return await this.openAiService.prompt(prompt);
   }

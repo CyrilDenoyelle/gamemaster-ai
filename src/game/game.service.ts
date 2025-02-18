@@ -65,7 +65,10 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
    * create game files.
    */
   async createGame() {
-    const compiled = await this.promptCompiler.exec(this.initialSystemMessage);
+    const { promptResult: compiled, objectResult } =
+      await this.promptCompiler.exec(this.initialSystemMessage);
+    console.log('compiled', compiled);
+    this.gameState = objectResult;
     this.mainChat = this.chatServiceFactory({
       systemMessages: [
         { role: 'system', content: compiled },
