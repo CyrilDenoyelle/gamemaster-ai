@@ -101,16 +101,16 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
     if (!existsSync('chats')) {
       mkdirSync('chats');
     }
+    const save = {
+      mainChat: this.mainChat.get(),
+      ...Object.entries(this.chats).reduce((acc, [chatName, chat]) => {
+        acc[chatName] = chat.get();
+        return acc;
+      }, {}),
+    };
     writeFileSync(
       `chats/${this.currentGameName}.json`,
-      JSON.stringify(
-        Object.entries(this.chats).reduce((acc, [chatName, chat]) => {
-          acc[chatName] = chat.get();
-          return acc;
-        }, {}),
-        null,
-        2,
-      ),
+      JSON.stringify(save, null, 2),
     );
 
     if (!existsSync('games')) {
@@ -118,7 +118,7 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
     }
     writeFileSync(
       `games/${this.currentGameName}.json`,
-      JSON.stringify({}, null, 2),
+      JSON.stringify({ ...this.gameState }, null, 2),
     );
   }
 
@@ -138,11 +138,12 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
     const chats = JSON.parse(
       readFileSync(`chats/${this.currentGameName}.json`, 'utf-8'),
     );
-    Object.entries(chats).map(
-      ([chatName, chat]: [string, ChatServiceFactoryChats]) => {
+    this.mainChat = this.chatServiceFactory(chats.mainChat);
+    Object.entries({ ...chats })
+      .filter(([n]) => n !== 'mainChat')
+      .map(([chatName, chat]: [string, ChatServiceFactoryChats]) => {
         this.chats[chatName] = this.chatServiceFactory(chat);
-      },
-    );
+      });
 
     // check if games folder exists
     if (!existsSync('games')) {
