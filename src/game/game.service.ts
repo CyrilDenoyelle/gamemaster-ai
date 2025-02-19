@@ -3,11 +3,9 @@ import { Chat } from 'openai/resources';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { PromptCompilerService } from 'src/prompt-compiler/prompt-compiler.service';
 import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
-import {
-  ChatService,
-  ChatServiceFactory,
-  ChatServiceFactoryChats,
-} from 'src/chat/chat.service';
+import { ChatService, ChatServiceArgs } from 'src/chat/chat.service';
+import { CreativeChatService } from 'src/chat/creativChat.service';
+import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
 
 type restrictedChatMessage =
   | Chat.ChatCompletionUserMessageParam
@@ -31,7 +29,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
 
   private gameState: { [key: string]: unknown } = {};
   private mainChat: ChatService;
-  private chats: { [key: string]: ChatService } = {};
+  private chats: { [key: string]: ChatService | CreativeChatService } = {};
   constructor(
     @Inject(forwardRef(() => PromptCompilerService))
     private promptCompiler: PromptCompilerService,
@@ -69,7 +67,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
       await this.promptCompiler.exec(this.initialSystemMessage);
     console.log('compiled', compiled);
     this.gameState = objectResult;
-    this.mainChat = this.chatServiceFactory({
+    this.mainChat = this.chatServiceFactory.create('chat', {
       systemMessages: [
         { role: 'system', content: compiled },
         {
@@ -105,7 +103,7 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
       mkdirSync('chats');
     }
     const save = {
-      mainChat: this.mainChat.get(),
+      mainChat: this.mainChat?.get(),
       ...Object.entries(this.chats).reduce((acc, [chatName, chat]) => {
         acc[chatName] = chat.get();
         return acc;
@@ -141,11 +139,11 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
     const chats = JSON.parse(
       readFileSync(`chats/${this.currentGameName}.json`, 'utf-8'),
     );
-    this.mainChat = this.chatServiceFactory(chats.mainChat);
+    this.mainChat = this.chatServiceFactory.create('chat', chats.mainChat);
     Object.entries({ ...chats })
       .filter(([n]) => n !== 'mainChat')
-      .map(([chatName, chat]: [string, ChatServiceFactoryChats]) => {
-        this.chats[chatName] = this.chatServiceFactory(chat);
+      .map(([chatName, chat]: [string, ChatServiceArgs]) => {
+        this.chats[chatName] = this.chatServiceFactory.create('chat', chat);
       });
 
     // check if games folder exists

@@ -5,18 +5,14 @@ import { encodeChat } from 'gpt-tokenizer';
 import { ChatMessage } from 'gpt-tokenizer/esm/GptEncoding';
 import { ModelName } from 'gpt-tokenizer/esm/mapping';
 
-export type ChatServiceFactoryChats = {
+export type ChatServiceArgs = {
   readonly messages?: restrictedChatMessage[];
   readonly systemMessages?: Chat.ChatCompletionMessageParam[];
   readonly longTermMemory?: restrictedChatMessage[];
   readonly forgotenMessages?: restrictedChatMessage[];
 };
 
-export type ChatServiceFactory = (
-  args?: ChatServiceFactoryChats,
-) => ChatService;
-
-type restrictedChatMessage =
+export type restrictedChatMessage =
   | Chat.ChatCompletionUserMessageParam
   | Chat.ChatCompletionSystemMessageParam
   | Chat.ChatCompletionAssistantMessageParam;
@@ -28,8 +24,8 @@ export class ChatService {
   longTermMemory: restrictedChatMessage[] = [];
   forgotenMessages: restrictedChatMessage[] = [];
   constructor(
-    args: ChatServiceFactoryChats,
-    private readonly openAiService: OpenAiService,
+    args: ChatServiceArgs,
+    protected readonly openAiService: OpenAiService,
   ) {
     const {
       messages = [],
@@ -68,7 +64,7 @@ export class ChatService {
 
   /**
    * Sets chat service properties.
-   * @param {ChatServiceFactoryChats} chatFactory - An object containing the chat service properties.
+   * @param {ChatServiceArgs} chatFactory - An object containing the chat service properties.
    * @param {restrictedChatMessage[]} chatFactory.messages - The list of messages in the chat.
    * @param {Chat.ChatCompletionMessageParam[]} chatFactory.systemMessages - The list of system messages in the chat.
    * @param {restrictedChatMessage[]} chatFactory.longTermMemory - The long-term memory associated with the chat.
@@ -79,7 +75,7 @@ export class ChatService {
     systemMessages,
     longTermMemory,
     forgotenMessages,
-  }: ChatServiceFactoryChats) {
+  }: ChatServiceArgs) {
     this.systemMessages = systemMessages;
     this.messages = messages;
     this.longTermMemory = longTermMemory;
@@ -89,7 +85,7 @@ export class ChatService {
   /**
    * Get all the chats
    */
-  get(): ChatServiceFactoryChats {
+  get(): ChatServiceArgs {
     return {
       systemMessages: this.systemMessages,
       messages: this.messages,
