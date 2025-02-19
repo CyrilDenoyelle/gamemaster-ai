@@ -67,7 +67,7 @@ Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un s
       await this.promptCompiler.exec(this.initialSystemMessage);
     console.log('compiled', compiled);
     this.gameState = objectResult;
-    this.mainChat = this.chatServiceFactory.create('chat', {
+    this.mainChat = this.chatServiceFactory.create('default', {
       systemMessages: [
         { role: 'system', content: compiled },
         {
@@ -139,11 +139,11 @@ Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturelleme
     const chats = JSON.parse(
       readFileSync(`chats/${this.currentGameName}.json`, 'utf-8'),
     );
-    this.mainChat = this.chatServiceFactory.create('chat', chats.mainChat);
+    this.mainChat = this.chatServiceFactory.create('default', chats.mainChat);
     Object.entries({ ...chats })
       .filter(([n]) => n !== 'mainChat')
       .map(([chatName, chat]: [string, ChatServiceArgs]) => {
-        this.chats[chatName] = this.chatServiceFactory.create('chat', chat);
+        this.chats[chatName] = this.chatServiceFactory.create('default', chat);
       });
 
     // check if games folder exists

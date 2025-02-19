@@ -5,11 +5,11 @@ import {
 } from './creativChat.service';
 import { OpenAiService } from './open-ai/open-ai.service';
 
-export type ChatServiceType = 'chat' | 'creative';
+export type ChatServiceType = 'default' | 'creative';
 
 // Service Map to associate types with their respective classes
 interface ServiceMap {
-  chat: { args: ChatServiceArgs; instance: ChatService };
+  default: { args: ChatServiceArgs; instance: ChatService };
   creative: {
     args: CreativeChatServiceArgs;
     instance: CreativeChatService;
