@@ -31,6 +31,7 @@ export class AudioStreamGateway
 
   private activeClients: Map<string, Socket> = new Map(); // Map<UserId, Socket>
   private readonly logger = new Logger(AudioStreamGateway.name);
+  private warnedClients: Set<string> = new Set();
 
   afterInit() {
     this.logger.log('Initialized');
@@ -89,7 +90,11 @@ export class AudioStreamGateway
   sendText(text: string) {
     const userId = process.env.BOT_ID;
     if (!this.activeClients.has(userId)) {
-      this.logger.warn(`No active client with id: ${userId}`);
+      if (!this.warnedClients.has(userId)) {
+        this.logger.warn(`No active client with id: ${userId}`);
+        this.warnedClients.add(userId);
+        setTimeout(() => this.warnedClients.delete(userId), 5000); // Clear warning after 5 seconds
+      }
       return;
     }
     this.activeClients.get(userId).emit('text', text);
