@@ -7,6 +7,10 @@ import { OpenAiService } from './open-ai/open-ai.service';
 
 export type ChatServiceType = 'default' | 'creative';
 
+const instanceMap = {
+  default: ChatService,
+  creative: CreativeChatService,
+};
 // Service Map to associate types with their respective classes
 interface ServiceMap {
   default: { args: ChatServiceArgs; instance: ChatService };
@@ -23,15 +27,6 @@ export class ChatServiceFactory {
     type: T,
     args: ServiceMap[T]['args'],
   ): ServiceMap[T]['instance'] {
-    if (type === 'creative') {
-      return new CreativeChatService(
-        args as CreativeChatServiceArgs,
-        this.openAiService,
-      ) as ServiceMap[T]['instance'];
-    }
-    return new ChatService(
-      args as ChatServiceArgs,
-      this.openAiService,
-    ) as ServiceMap[T]['instance'];
+    return new instanceMap[type](args, this.openAiService);
   }
 }
