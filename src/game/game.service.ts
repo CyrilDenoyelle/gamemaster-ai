@@ -15,17 +15,18 @@ type restrictedChatMessage =
 @Injectable()
 export class GameService {
   currentGameName: string;
-  initialSystemMessage: string = `
-set(nom1|random(prompt(une liste de prénom masculin séparé par des pipes)))
-set(nom2|random(prompt(une liste de prénom feminins séparé par des pipes)))
-Crée une histoire immersive et originale qui répond aux critères suivants :
-Genre : setget(genre|random(prompt(une liste de genre d'histoires adaptées a du jeu de rôle, séparé par des pipes|1))).
-Style : setget(style|random(prompt(une liste de genre d'univers adaptées a du jeu de rôle, séparé par des pipes|1))).
-Cadre : prompt(décris en quelques lignes un univers du style "get(style)", avec ses lieux, qui sert au genre "get(genre)" en décrivant en détail le décor, en 3 lignes).
-Personnages joueurs : prompt(donne moi deux courte descripions de deux peronnages només: get(nom1) et get(nom2) en deux lignes chacune qui marche avec le genre "get(genre)").
-Intrigue : L'histoire doit inclure un enjeu principal. Une quête ou mission, un mystère à résoudre, un danger imminent, etc.). Avec des rebondissements imprévus.
-Développement : Intègre une montée en tension avec des obstacles significatifs, des dilemmes moraux ou émotionnels, et une résolution cohérente.
-Ton et style : Adopte un ton sérieux, humoristique, poétique ou autre, et un style narratif immersif.`;
+  initialSystemMessage: string = `Crée une histoire immersive et originale qui répond aux critères suivants :
+Genre: setget(genre|random(prompt(une liste, les éléments séparés par des pipes, de genres d'univers adaptés à du jeu de rôle, juste la liste))).
+Ambiance: setget(ambiance|random(prompt(une liste, les éléments séparés par des pipes, de styles d'ambiances générales adaptés à du jeu de rôle pour un univers "get(genre)", juste la liste.))).
+set(nom1|random(prompt(une liste, les éléments séparés par des pipes, de prénoms masculins qui pourraient correspondre au genre "get(genre)", pas de noms de personnages très connus de ce genre. Juste la liste)))
+set(nom2|random(prompt(une liste, les éléments séparés par des pipes, de prénoms féminins qui pourraient correspondre au genre "get(genre)", pas de noms de personnages très connus de ce genre. Juste la liste)))
+Cadre: setget(descriptionUnivers|prompt(Décris en trois phrases un univers de genre "get(genre)" avec une ambiance "get(ambiance)". Inclue un lieu emblématique, une particularité marquante et l'atmosphère générale.).)
+Personnages joueurs: setget(descriptionPersonnages|prompt(Donne-moi deux courtes descriptions de "get(nom1)" et "get(nom2)" en deux lignes chacune, pour un univers du genre "get(genre)". Indique leur rôle, équipement et un trait de caractère marquant qui pourrait influencer leurs décisions.))
+Objectif: setget(objectif|prompt(Invente-moi un objectif principal typique pour une session JDR, style "get(genre), get(ambiance)". Avec des rebondissements imprévus si nécessaire. Juste le texte, pas de titre.))
+set(objectifTitle|prompt(Génère un titre clair et concis pour cet objectif: "get(objectif)". Ce titre doit résumer précisément la mission et contenir un verbe d'action. Pas d'effets de style inutiles, juste un titre fonctionnel qui indique directement l'objectif.))
+set(firstGoal|prompt(Génère un petit objectif immédiat qui plonge les joueurs dans l'ambiance de l'univers "get(genre)" avec une atmosphère "get(ambiance)". Cet objectif doit être simple mais engageant, et impliquer des actions concrètes à court terme. Il ne doit pas révéler encore la mission principale mais plutôt installer le ton de l'aventure. Deux phrase.))
+Rebondissement: prompt(Décris un rebondissement qui change complètement la perception de l'objectif: "get(objectifTitle)", en lien avec "get(descriptionUnivers)". Il doit surprendre les personnages et les forcer à reconsidérer leur approche. Deux phrase.))
+Motivations des personnages: setget(motivationsPersonnages|prompt(Voici l'objectif: get(objectif)\nVoici les personnages:\nget(descriptionPersonnages)\nDonne une raison unique et différente pour chaque personnage expliquant pourquoi il veut atteindre cet objectif. 2 lignes. Juste le texte.))`;
 
   private gameState: { [key: string]: unknown } = {};
   private mainChat: ChatService;
