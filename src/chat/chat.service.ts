@@ -7,9 +7,10 @@ import { ModelName } from 'gpt-tokenizer/esm/mapping';
 
 export type ChatServiceArgs = {
   readonly messages?: restrictedChatMessage[];
-  readonly systemMessages?: Chat.ChatCompletionMessageParam[];
+  readonly systemMessages?: restrictedChatMessage[];
   readonly longTermMemory?: restrictedChatMessage[];
   readonly forgotenMessages?: restrictedChatMessage[];
+  readonly listMessages?: restrictedChatMessage[];
 };
 
 export type restrictedChatMessage =
@@ -20,9 +21,10 @@ export type restrictedChatMessage =
 @Injectable()
 export class ChatService {
   messages: restrictedChatMessage[] = [];
-  systemMessages: Chat.ChatCompletionMessageParam[] = [];
+  systemMessages: restrictedChatMessage[] = [];
   longTermMemory: restrictedChatMessage[] = [];
   forgotenMessages: restrictedChatMessage[] = [];
+  listMessages: restrictedChatMessage[] = [];
   constructor(
     args: ChatServiceArgs,
     protected readonly openAiService: OpenAiService,
@@ -49,8 +51,52 @@ export class ChatService {
     this.push(message);
     await this.shiftMessagesUntilWithinLimit();
     const textAnswer = await this.openAiService.sendChat(this.getChat());
-    this.push({ role: 'assistant', content: textAnswer });
+    this.push({ role: 'assistant', content: textAnswer.trim() });
     return textAnswer;
+  }
+
+  /**
+   * Send text to the chat
+   * @param message The role of the user sending the text
+   * @param content The text to send
+   */
+  async randomSuggestion(additionalInput?: string) {
+    await this.shiftMessagesUntilWithinLimit();
+    const listPrompt = `${additionalInput ? additionalInput + '\n' : ''}Génère une liste de suggestions.
+Chaque suggestion doit être auto-suffisante.
+Respecte strictement la tâche donnée dans ton rôle. Ne dépasse pas ses exigences.
+Ne numérote pas les suggestions.
+Sépare chaque suggestion par '|'.
+Aucun texte supplémentaire avant ou après la liste.`;
+    this.listMessages.push({
+      role: 'user',
+      content: listPrompt,
+    });
+    const listAnswer = await this.openAiService.sendChat([
+      ...this.systemMessages,
+      ...this.messages,
+      {
+        role: 'user',
+        content: listPrompt,
+      },
+    ]);
+    this.listMessages.push({
+      role: 'assistant',
+      content: listAnswer,
+    });
+    const list = listAnswer.split('|');
+    // choose a random answer from the list of answers
+    const answer = list[Math.floor(Math.random() * list.length)];
+    // push the "please generate" message and the random answer
+    this.push(
+      {
+        role: 'user',
+        content: `${additionalInput ? additionalInput + '\n' : ''}Génère une suggestion.`,
+      },
+      { role: 'assistant', content: answer.trim() },
+    );
+
+    return answer;
   }
 
   /**
@@ -90,6 +136,7 @@ export class ChatService {
       systemMessages: this.systemMessages,
       messages: this.messages,
       longTermMemory: this.longTermMemory,
+      listMessages: this.listMessages,
       forgotenMessages: this.forgotenMessages,
     };
   }

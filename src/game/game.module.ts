@@ -4,6 +4,7 @@ import { GameService } from './game.service';
 import { OpenAiService } from '../chat/open-ai/open-ai.service';
 import { PromptCompilerModule } from 'src/prompt-compiler/prompt-compiler.module';
 import { ChatModule } from 'src/chat/chat.module';
+import { GameGateway } from './game.gateway';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { ChatModule } from 'src/chat/chat.module';
     forwardRef(() => PromptCompilerModule),
     ChatModule,
   ],
-  providers: [GameService, OpenAiService],
+  providers: [GameService, GameGateway, OpenAiService],
   exports: [GameService, OpenAiService],
 })
 export class GameModule {}
