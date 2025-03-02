@@ -60,9 +60,9 @@ export class ChatService {
    * @param message The role of the user sending the text
    * @param content The text to send
    */
-  async randomSuggestion(additionalInput?: string) {
+  async randomSuggestion(message?: restrictedChatMessage) {
     await this.shiftMessagesUntilWithinLimit();
-    const listPrompt = `${additionalInput ? additionalInput + '\n' : ''}Génère une liste de suggestions.
+    const listPrompt = `${message.content ? message.content + '\n' : ''}Génère une liste de suggestions.
 Chaque suggestion doit être auto-suffisante.
 Respecte strictement la tâche donnée dans ton rôle. Ne dépasse pas ses exigences.
 Ne numérote pas les suggestions.
@@ -91,12 +91,12 @@ Aucun texte supplémentaire avant ou après la liste.`;
     this.push(
       {
         role: 'user',
-        content: `${additionalInput ? additionalInput + '\n' : ''}Génère une suggestion.`,
+        content: `${message.content ? message.content + '\n' : ''}Génère une suggestion.`,
       },
       { role: 'assistant', content: answer.trim() },
     );
 
-    return answer;
+    return answer.trim();
   }
 
   /**
