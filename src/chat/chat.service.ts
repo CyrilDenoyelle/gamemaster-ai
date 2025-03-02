@@ -121,10 +121,12 @@ Aucun texte supplémentaire avant ou après la liste.`;
     systemMessages,
     longTermMemory,
     forgotenMessages,
+    listMessages,
   }: ChatServiceArgs) {
     this.systemMessages = systemMessages;
     this.messages = messages;
     this.longTermMemory = longTermMemory;
+    this.listMessages = listMessages;
     this.forgotenMessages = forgotenMessages;
   }
 
