@@ -110,11 +110,11 @@ Aucun texte supplémentaire avant ou après la liste.`;
 
   /**
    * Sets chat service properties.
-   * @param {ChatServiceArgs} chatFactory - An object containing the chat service properties.
-   * @param {restrictedChatMessage[]} chatFactory.messages - The list of messages in the chat.
-   * @param {Chat.ChatCompletionMessageParam[]} chatFactory.systemMessages - The list of system messages in the chat.
-   * @param {restrictedChatMessage[]} chatFactory.longTermMemory - The long-term memory associated with the chat.
-   * @param {restrictedChatMessage[]} chatFactory.forgotenMessages - The list of forgotten messages in the chat.
+   * @param {restrictedChatMessage[]} chat.messages - The list of messages in the chat.
+   * @param {restrictedChatMessage[]} chat.systemMessages - The list of system messages in the chat.
+   * @param {restrictedChatMessage[]} chat.longTermMemory - The long-term memory associated with the chat.
+   * @param {restrictedChatMessage[]} chat.forgotenMessages - The list of forgotten messages in the chat.
+   * @param {restrictedChatMessage[]} chat.listMessages - The list of forgotten messages in the chat.
    */
   set({
     messages,
