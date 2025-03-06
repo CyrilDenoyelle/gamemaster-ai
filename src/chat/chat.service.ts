@@ -62,41 +62,50 @@ export class ChatService {
    */
   async randomSuggestion(message?: restrictedChatMessage) {
     await this.shiftMessagesUntilWithinLimit();
-    const listPrompt = `${message.content ? message.content + '\n' : ''}Génère une liste de suggestions.
-Chaque suggestion doit être auto-suffisante.
-Respecte strictement la tâche donnée dans ton rôle. Ne dépasse pas ses exigences.
-Ne numérote pas les suggestions.
-Sépare chaque suggestion par '|'.
-Aucun texte supplémentaire avant ou après la liste.`;
-    this.listMessages.push({
+    this.listMessages.push(message);
+    const listAnswer = [];
+    const randomCount = Math.floor(Math.random() * 4) + 3;
+    const usermessage: restrictedChatMessage = {
       role: 'user',
-      content: listPrompt,
-    });
-    const listAnswer = await this.openAiService.sendChat([
-      ...this.systemMessages,
-      ...this.messages,
-      {
-        role: 'user',
-        content: listPrompt,
-      },
-    ]);
-    this.listMessages.push({
-      role: 'assistant',
-      content: listAnswer,
-    });
-    const list = listAnswer.split('|');
-    // choose a random answer from the list of answers
-    const answer = list[Math.floor(Math.random() * list.length)];
-    // push the "please generate" message and the random answer
-    this.push(
-      {
-        role: 'user',
-        content: `${message.content ? message.content + '\n' : ''}Génère une suggestion.`,
-      },
-      { role: 'assistant', content: answer.trim() },
+      content: `${message ? message.content : 'Génère une idée.'}`,
+    };
+
+    const m = (i: number) =>
+      i === 0
+        ? usermessage
+        : {
+            role: 'user',
+            content: 'Génère une autre idée. Avec les mêmes règles.',
+          };
+
+    const answerPromises = Array.from({ length: randomCount }).map(
+      (_, i) => async () =>
+        this.openAiService.sendChat([
+          ...this.systemMessages,
+          ...this.messages,
+          ...listAnswer.reduce((acc, e, j) => {
+            acc.push(m(j), e);
+            return acc;
+          }, []),
+          m(i),
+        ]),
     );
 
-    return answer.trim();
+    for await (const answerPromise of answerPromises) {
+      const textAnswer = await answerPromise();
+      listAnswer.push({ role: 'assistant', content: textAnswer.trim() });
+    }
+
+    this.listMessages.push({
+      role: 'assistant',
+      content: listAnswer.map((e) => e.content).join('\n\n ---'),
+    });
+    // choose a random answer from the list of answers
+    const answer = listAnswer[Math.floor(Math.random() * listAnswer.length)];
+    // push the "please generate" message and the random answer
+    this.push(usermessage, answer);
+
+    return answer.content;
   }
 
   /**
