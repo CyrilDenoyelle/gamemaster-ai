@@ -155,7 +155,10 @@ Aucun texte supplémentaire avant ou après la liste.`;
    */
   tokenCount() {
     const chat = this.getChat() as ChatMessage[];
-    const tokens = encodeChat(chat, process.env.OPENAI_CHAT_MODEL as ModelName);
+    const tokens = encodeChat(
+      chat,
+      process.env.GPT_TOKENIZER_CHAT_MODEL as ModelName,
+    );
     return tokens.length;
   }
 

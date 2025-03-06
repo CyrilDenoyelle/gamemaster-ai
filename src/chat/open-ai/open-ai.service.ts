@@ -3,10 +3,10 @@ import OpenAI from 'openai';
 import { Chat } from 'openai/resources';
 @Injectable()
 export class OpenAiService {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  openai = new OpenAI();
 
   baseSettings = {
-    model: process.env.OPENAI_CHAT_MODEL,
+    model: process.env.CHAT_MODEL,
     max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS_BY_MESSAGE, 10),
     temperature: parseFloat(process.env.AI_TEMPERATURE),
     frequency_penalty: parseFloat(process.env.AI_FREQUENCY_PENALTY),
