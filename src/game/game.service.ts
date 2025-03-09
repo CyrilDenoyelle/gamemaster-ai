@@ -211,8 +211,6 @@ Présente leur l'univers, les personnages et l'objectif a court terme.`,
   }
 
   getGame(): Game {
-    if (!this.mainChat) return {};
-
     const chats: { [key: string]: ChatServiceArgs } = {
       ...Object.entries(this.chats).reduce((acc, [chatName, chat]) => {
         acc[chatName] = chat.get();
@@ -222,7 +220,7 @@ Présente leur l'univers, les personnages et l'objectif a court terme.`,
     return {
       gameState: this.gameState,
       chats,
-      mainChat: this.mainChat.get(),
+      mainChat: this.mainChat ? this.mainChat.get() : {},
     };
   }
 
