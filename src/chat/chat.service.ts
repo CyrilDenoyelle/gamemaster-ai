@@ -60,11 +60,14 @@ export class ChatService {
    * @param message The role of the user sending the text
    * @param content The text to send
    */
-  async randomSuggestion(message?: restrictedChatMessage) {
+  async randomSuggestion(
+    message?: restrictedChatMessage,
+    { min, max }: { min: number; max: number } = { min: 2, max: 4 },
+  ) {
     await this.shiftMessagesUntilWithinLimit();
     this.listMessages.push(message);
     const listAnswer = [];
-    const randomCount = Math.floor(Math.random() * 3) + 2;
+    const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
     const usermessage: restrictedChatMessage = {
       role: 'user',
       content: `${message ? message.content : 'Génère une idée.'}`,
@@ -96,10 +99,7 @@ export class ChatService {
       listAnswer.push({ role: 'assistant', content: textAnswer.trim() });
     }
 
-    this.listMessages.push({
-      role: 'assistant',
-      content: listAnswer.map((e) => e.content).join('\n\n ---'),
-    });
+    this.listMessages.push(...listAnswer);
     // choose a random answer from the list of answers
     const answer = listAnswer[Math.floor(Math.random() * listAnswer.length)];
     // push the "please generate" message and the random answer
