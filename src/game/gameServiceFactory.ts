@@ -30,11 +30,15 @@ export class GameServiceFactory {
     this.guildId = guildId;
   }
 
-  newGame(): GameService {
-    this.saveGames(); // Save the current game before replacing it
+  newGame(initPrompt?: string): GameService {
+    if (this.currentGame) {
+      this.saveGames(); // Save the current game before replacing it
+    }
+
     const newGameName = `game_${new Date().toISOString().replace(/[:.]/g, '-')}`;
     this.create({
       gameName: newGameName,
+      ...{ initPrompt },
     });
     const newGame = this.currentGame.getGame();
     this.games.set(newGame.gameName, newGame);
@@ -104,6 +108,7 @@ export class GameServiceFactory {
   }
 
   public async sendMessage(args: restrictedChatMessage) {
-    return this.currentGame.sendMessage(args);
+    await this.currentGame.sendMessage(args);
+    this.saveGames();
   }
 }

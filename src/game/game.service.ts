@@ -10,6 +10,7 @@ import { GameGateway } from './game.gateway';
 
 export type Game = {
   gameName: string;
+  initPrompt?: string;
   gameState?: { [key: string]: unknown };
   chats?: { [key: string]: ChatServiceArgs };
   mainChat?: ChatServiceArgs;
@@ -18,6 +19,7 @@ export type Game = {
 export class GameService {
   private gameState: { [key: string]: unknown } = {};
   private mainChat: ChatService;
+  private initPrompt?: string;
   private chats: { [key: string]: ChatService } = {};
   private gameName: string;
   constructor(
@@ -32,6 +34,7 @@ export class GameService {
   ) {
     this.gameState = gameData.gameState || {};
     this.gameName = gameData.gameName;
+    this.initPrompt = gameData.initPrompt;
 
     if (!gameData.mainChat) {
       this.createGame();
@@ -87,55 +90,71 @@ export class GameService {
       },
     ];
 
-    this.chats.genre = this.chatServiceFactory.create({
+    // Si nécessaire, met a jour cette liste en prenant en compte le prompt utilisateur pour créer cette histoire: "J'aime bien l'espace, le cosmos"
+    // Ne donne pas d'exemple pour ces éléments.
+
+    // Je suis le joueurs, créer des idées basées sur ces éléments pour moi.
+    // Une idée a la foi, pour que les valide.
+    // Quand tu a toute les information met "c'est parti!" a la fin du texte.
+
+    // Univers Creation
+    this.chats.universCreation = this.chatServiceFactory.create({
       systemMessages: sys(
-        `genres d'univers adaptés à du jeu de rôle en quelques mots`,
+        `Tu es un assistant expert en création d'univers pour les maîtres de jeu de rôle. `,
       ),
     });
-    this.gameState.genre = await this.chats.genre.randomSuggestion();
+    await this.chats.universCreation.sendMessage({
+      role: 'user',
+      content: `Identifie les six éléments fondamentaux permettant d'immerger les joueurs dans un nouvel univers.
+Ces éléments doivent être génériques et adaptables à différents contextes de jeu, sans inclure d'exemples spécifiques.`,
+    });
 
-    this.chats.nom1 = this.chatServiceFactory.create({
+    await this.chats.universCreation.sendMessage({
+      role: 'user',
+      content: `Met les dans l'ordre dans le quel ces idées devraient être communiquées au(x) joueur(x), du plus global au plus précis.`,
+    });
+
+    this.gameState.univers = await this.chats.universCreation.randomSuggestion(
+      {
+        role: 'user',
+        content: `Génère une courte idée pour chaque élément de la liste. Juste le texte.${this.initPrompt ? `\nSi pertinent, prends en compte le prompt utilisateur suivant: "${this.initPrompt}"` : ''}`,
+      },
+      { min: 3, max: 4 },
+    );
+    this.gameState.universResume = await this.chats.universCreation.sendMessage(
+      {
+        role: 'user',
+        content: `Résume l'univers en quelques phrases.`,
+      },
+    );
+
+    // Character Creation
+    this.chats.characterCreation = this.chatServiceFactory.create({
       systemMessages: sys(
-        `prénom masculin qui pourrait correspondre au genre "${this.gameState.genre}", pas de nom de personnage très connu de ce genre`,
+        `Tu es un assistant expert en création de personnages pour les maîtres de jeu de rôle.`,
       ),
     });
-    this.gameState.nom1 = await this.chats.nom1.randomSuggestion();
-
-    this.chats.descriptionPersonnages = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Donne-moi deux courtes descriptions de "${this.gameState.nom1}" en deux lignes, pour un univers du genre "${this.gameState.genre}". Indique son rôle, équipement et un trait de caractère marquant qui pourrait influencer ses décisions.`,
-      ),
+    await this.chats.characterCreation.sendMessage({
+      role: 'user',
+      content: `Identifie les six éléments fondamentaux permettant de créer un personnage unique et mémorables, qui partirait a l'aventure dans ce jeu de rôle.
+Ces éléments doivent être génériques et adaptables à différents contextes de jeu, sans inclure d'exemples spécifiques.`,
+      // créer le nombre de personnage donnés dans la commande de création de la game.
     });
-    this.gameState.descriptionPersonnages =
-      await this.chats.descriptionPersonnages.randomSuggestion(); // todo use sendMessage
-    this.chats.objectif = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Invente-moi un objectif principal typique pour une session JDR, style "${this.gameState.genre}".
-Avec des rebondissements imprévus si nécessaire.
-Juste le texte, pas de titre.`,
-      ),
+    await this.chats.characterCreation.sendMessage({
+      role: 'user',
+      content: `Met les dans l'ordre dans le quel ces idées devraient être communiquées au(x) joueur(x), du plus global au plus précis.`,
     });
-    this.gameState.objectif = await this.chats.objectif.randomSuggestion();
+    this.gameState.characters =
+      await this.chats.characterCreation.randomSuggestion(
+        {
+          role: 'user',
+          content: `Pour chaque élément de la liste, génère une idée concise et uniquement textuelle.${this.initPrompt ? `\nSi pertinent, prends en compte le prompt utilisateur suivant : "${this.initPrompt}"` : ''}`,
+        },
+        { min: 3, max: 4 },
+      );
 
-    this.chats.firstGoal = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Génère un petit objectif immédiat qui plonge les joueurs dans l'ambiance de l'univers "${this.gameState.genre}".
-Cet objectif de moyen terme doit être engageant et impliquer des actions concrètes.
-Il ne doit pas révéler encore la mission principale mais plutôt installer le ton de l'aventure. Deux phrase.`,
-      ),
-    });
-    this.gameState.firstGoal = await this.chats.firstGoal.randomSuggestion();
-
-    const compiled = `Crée une histoire originale qui répond aux critères suivants :
-Genre: ${this.gameState.genre}
-${this.gameState.nom1}
-Objectif: ${this.gameState.objectif}
-${this.gameState.firstGoal}`;
-
-    console.log('compiled', compiled);
     this.mainChat = this.chatServiceFactory.create({
       systemMessages: [
-        { role: 'system', content: compiled },
         {
           role: 'system',
           content: `Tu es le maître du jeu.
@@ -146,18 +165,31 @@ Ton rôle est d'être le narrateur et d'incarner l'univers ainsi que les personn
 **Si une incertitude existe sur leurs choix, pose-leur la question au lieu de décider à leur place.**
 
 Tout ce que tu dis doit: soit faire avancer l'histoire, soit renforcer l'ambiance.
-Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturellement vers leur objectif actuel.`,
+Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturellement vers leur objectif actuel.
+Dis-leur les choses de façon symple.`,
         },
       ],
     });
-    const mainChat = this.mainChat;
-    const answer = await mainChat.sendMessage({
-      role: 'system',
-      content: `Lance la partie de jeu de rôle pour les joueurs.
+
+    const answer = await this.mainChat.sendMessage(
+      {
+        role: 'system',
+        content: `L'univers:
+${this.gameState.univers}
+
+
+Les personnages:
+${this.gameState.characters}
+
+
+Lance la partie de jeu de rôle pour les joueurs.
 Présente leur l'univers, les personnages et l'objectif a court terme.`,
-      // userId: process.env.BOT_ID,
-    });
-    this.audioStreamGateway.sendText(answer);
+        // userId: process.env.BOT_ID,
+      },
+      'systemMessages',
+    );
+
+    this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
 
     this.saveGame();
   }

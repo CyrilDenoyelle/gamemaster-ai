@@ -47,8 +47,12 @@ export class ChatService {
    * @param role The role of the user sending the text
    * @param content The text to send
    */
-  async sendMessage(message: restrictedChatMessage) {
-    this.push(message);
+  async sendMessage(
+    message: restrictedChatMessage,
+    chatName: keyof ChatServiceArgs = 'messages',
+  ) {
+    this[chatName].push(message);
+    const timer = Date.now();
     await this.shiftMessagesUntilWithinLimit();
     const textAnswer = await this.openAiService.sendChat(this.getChat());
     this.push({ role: 'assistant', content: textAnswer.trim() });
