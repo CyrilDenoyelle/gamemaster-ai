@@ -64,7 +64,7 @@ export class ChatService {
     await this.shiftMessagesUntilWithinLimit();
     this.listMessages.push(message);
     const listAnswer = [];
-    const randomCount = Math.floor(Math.random() * 3) + 1;
+    const randomCount = Math.floor(Math.random() * 3) + 2;
     const usermessage: restrictedChatMessage = {
       role: 'user',
       content: `${message ? message.content : 'Génère une idée.'}`,
