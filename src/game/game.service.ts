@@ -94,21 +94,6 @@ export class GameService {
     });
     this.gameState.genre = await this.chats.genre.randomSuggestion();
 
-    this.chats.ambiance = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Style d'ambiance générale adapté à du jeu de rôle pour un univers "${this.gameState.genre}"`,
-      ),
-    });
-    this.gameState.ambiance = await this.chats.ambiance.randomSuggestion();
-
-    this.chats.descriptionUnivers = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Décris en trois phrases un univers de genre "${this.gameState.genre}" avec une ambiance "${this.gameState.ambiance}". Inclue un lieu emblématique, une particularité marquante et l'atmosphère générale.`,
-      ),
-    });
-    this.gameState.descriptionUnivers =
-      await this.chats.descriptionUnivers.randomSuggestion();
-
     this.chats.nom1 = this.chatServiceFactory.create({
       systemMessages: sys(
         `prénom masculin qui pourrait correspondre au genre "${this.gameState.genre}", pas de nom de personnage très connu de ce genre`,
@@ -116,53 +101,25 @@ export class GameService {
     });
     this.gameState.nom1 = await this.chats.nom1.randomSuggestion();
 
-    this.chats.nom2 = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `prénom féminin qui pourrait correspondre au genre "${this.gameState.genre}", pas de nom de personnage très connu de ce genre`,
-      ),
-    });
-    this.gameState.nom2 = await this.chats.nom2.randomSuggestion();
-
     this.chats.descriptionPersonnages = this.chatServiceFactory.create({
       systemMessages: sys(
-        `Donne-moi deux courtes descriptions de "${this.gameState.nom1}" et "${this.gameState.nom2}" en deux lignes chacune, pour un univers du genre "${this.gameState.genre}". Indique leur rôle, équipement et un trait de caractère marquant qui pourrait influencer leurs décisions.`,
+        `Donne-moi deux courtes descriptions de "${this.gameState.nom1}" en deux lignes, pour un univers du genre "${this.gameState.genre}". Indique son rôle, équipement et un trait de caractère marquant qui pourrait influencer ses décisions.`,
       ),
     });
     this.gameState.descriptionPersonnages =
       await this.chats.descriptionPersonnages.randomSuggestion(); // todo use sendMessage
     this.chats.objectif = this.chatServiceFactory.create({
       systemMessages: sys(
-        `Invente-moi un objectif principal typique pour une session JDR, style "${this.gameState.genre}, ${this.gameState.ambiance}".
+        `Invente-moi un objectif principal typique pour une session JDR, style "${this.gameState.genre}".
 Avec des rebondissements imprévus si nécessaire.
 Juste le texte, pas de titre.`,
       ),
     });
     this.gameState.objectif = await this.chats.objectif.randomSuggestion();
 
-    this.chats.motivationsPersonnages = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Voici l'objectif: ${this.gameState.objectif}
-Voici les personnages:
-${this.gameState.descriptionPersonnages}
-Donne une raison unique et différente pour chaque personnage expliquant pourquoi il veut atteindre cet objectif. 2 lignes. Juste le texte.`,
-      ),
-    });
-    this.gameState.motivationsPersonnages =
-      await this.chats.motivationsPersonnages.randomSuggestion();
-
-    this.chats.objectifTitle = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Génère un titre clair et concis pour cet objectif: "${this.gameState.objectif}".
-Ce titre doit résumer précisément la mission et contenir un verbe d'action.
-Pas d'effets de style inutiles, juste un titre fonctionnel qui indique directement l'objectif.`,
-      ),
-    });
-    this.gameState.objectifTitle =
-      await this.chats.objectifTitle.randomSuggestion();
-
     this.chats.firstGoal = this.chatServiceFactory.create({
       systemMessages: sys(
-        `Génère un petit objectif immédiat qui plonge les joueurs dans l'ambiance de l'univers "${this.gameState.genre}" avec une atmosphère "${this.gameState.ambiance}".
+        `Génère un petit objectif immédiat qui plonge les joueurs dans l'ambiance de l'univers "${this.gameState.genre}".
 Cet objectif de moyen terme doit être engageant et impliquer des actions concrètes.
 Il ne doit pas révéler encore la mission principale mais plutôt installer le ton de l'aventure. Deux phrase.`,
       ),
@@ -171,15 +128,9 @@ Il ne doit pas révéler encore la mission principale mais plutôt installer le 
 
     const compiled = `Crée une histoire originale qui répond aux critères suivants :
 Genre: ${this.gameState.genre}
-Ambiance: ${this.gameState.ambiance}
 ${this.gameState.nom1}
-${this.gameState.nom2}
-Cadre: ${this.gameState.descriptionUnivers}
-Personnages joueurs: ${this.gameState.descriptionPersonnages}
 Objectif: ${this.gameState.objectif}
-${this.gameState.objectifTitle}
-${this.gameState.firstGoal}
-Motivations des personnages: ${this.gameState.motivationsPersonnages}`;
+${this.gameState.firstGoal}`;
 
     console.log('compiled', compiled);
     this.mainChat = this.chatServiceFactory.create({
