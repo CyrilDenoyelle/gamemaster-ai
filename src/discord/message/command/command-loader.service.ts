@@ -1,10 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CommandService } from '../command/command.service';
 import { Command } from './command.interface';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { VoiceService } from '../../voice/voice.service';
-import { GameService } from 'src/game/game.service';
+import { GameServiceFactory } from 'src/game/gameServiceFactory';
 
 @Injectable()
 export class CommandLoader implements OnModuleInit {
@@ -14,7 +14,8 @@ export class CommandLoader implements OnModuleInit {
   constructor(
     private readonly commandService: CommandService,
     private readonly voiceService: VoiceService,
-    private readonly gameService: GameService,
+    @Inject('GameServiceFactory')
+    private readonly gameServiceFactory: GameServiceFactory,
   ) {}
 
   async onModuleInit() {
@@ -36,7 +37,7 @@ export class CommandLoader implements OnModuleInit {
 
       const command: Command = new CommandClass({
         voiceService: this.voiceService,
-        gameService: this.gameService,
+        gameServiceFactory: this.gameServiceFactory,
       });
 
       if (command && command.name && typeof command.execute === 'function') {

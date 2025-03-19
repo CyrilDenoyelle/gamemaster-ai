@@ -1,39 +1,49 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { Chat } from 'openai/resources';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
-import { ChatService, ChatServiceArgs } from 'src/chat/chat.service';
+import {
+  ChatService,
+  ChatServiceArgs,
+  restrictedChatMessage,
+} from 'src/chat/chat.service';
 import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
 import { GameGateway } from './game.gateway';
-// import { OpenAiService } from 'src/chat/open-ai/open-ai.service';
 
-type restrictedChatMessage =
-  | Chat.ChatCompletionUserMessageParam
-  | Chat.ChatCompletionSystemMessageParam
-  | Chat.ChatCompletionAssistantMessageParam;
-
-type Game = {
+export type Game = {
+  gameName: string;
   gameState?: { [key: string]: unknown };
   chats?: { [key: string]: ChatServiceArgs };
   mainChat?: ChatServiceArgs;
 };
 @Injectable()
 export class GameService {
-  currentGameName: string;
-
   private gameState: { [key: string]: unknown } = {};
   private mainChat: ChatService;
   private chats: { [key: string]: ChatService } = {};
+  private gameName: string;
   constructor(
-    // @Inject(forwardRef(() => OpenAiService))
-    // private openAiService: OpenAiService,
+    gameData: Game,
+    private saveGame: () => void,
     @Inject(forwardRef(() => AudioStreamGateway))
     private audioStreamGateway: AudioStreamGateway,
     @Inject('ChatServiceFactory')
     private chatServiceFactory: ChatServiceFactory,
     @Inject(forwardRef(() => GameGateway))
     private gameGateway: GameGateway,
-  ) {}
+  ) {
+    this.gameState = gameData.gameState || {};
+    this.gameName = gameData.gameName;
+
+    if (!gameData.mainChat) {
+      this.createGame();
+    } else {
+      this.mainChat = this.chatServiceFactory.create(gameData.mainChat);
+      Object.entries(gameData.chats || {}).map(([chatName, chat]) => {
+        this.chats[chatName] = this.chatServiceFactory.create(chat);
+      });
+    }
+
+    this.gameGateway.sendGame();
+  }
 
   chatOrCreate(name: string, prompt?: string): ChatService {
     if (!this.chats[name]) {
@@ -50,22 +60,13 @@ export class GameService {
   }
 
   /**
-   * set current chat messages to chats/chatName file.
-   * @param name
-   */
-  setGame(name: string) {
-    this.currentGameName = name;
-    this.loadGame();
-  }
-
-  /**
    * send message to chat.
    */
   async sendMessage(message: restrictedChatMessage) {
-    this.saveGame();
+    this.gameGateway.sendGame();
     if (this.mainChat) {
       const answer = await this.mainChat.sendMessage(message);
-      this.saveGame();
+      this.gameGateway.sendGame();
       this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
     }
   }
@@ -218,85 +219,10 @@ Présente leur l'univers, les personnages et l'objectif a court terme.`,
       }, {}),
     };
     return {
+      gameName: this.gameName,
       gameState: this.gameState,
       chats,
       mainChat: this.mainChat ? this.mainChat.get() : {},
     };
-  }
-
-  /**
-   * save current chat messages to chats/chatName file.
-   */
-  saveGame() {
-    // check if chats folder exists
-    if (!existsSync('chats')) {
-      mkdirSync('chats');
-    }
-    const chats: { [key: string]: ChatServiceArgs } = {
-      ...Object.entries(this.chats).reduce((acc, [chatName, chat]) => {
-        acc[chatName] = chat.get();
-        return acc;
-      }, {}),
-    };
-
-    const save = {
-      mainChat: this.mainChat.get(),
-      ...chats,
-    };
-
-    writeFileSync(
-      `chats/${this.currentGameName}.json`,
-      JSON.stringify(save, null, 2),
-    );
-
-    if (!existsSync('games')) {
-      mkdirSync('games');
-    }
-    writeFileSync(
-      `games/${this.currentGameName}.json`,
-      JSON.stringify({ ...this.gameState }, null, 2),
-    );
-    this.gameGateway.sendChats();
-  }
-
-  /**
-   * load chat messages by name in chats/chatName file.
-   */
-  loadGame() {
-    // check if chats folder exists
-    if (!existsSync('chats')) {
-      mkdirSync('chats');
-    }
-    // check if chat file exists
-    if (!existsSync(`chats/${this.currentGameName}.json`)) {
-      this.createGame();
-      return;
-    }
-    const chats = JSON.parse(
-      readFileSync(`chats/${this.currentGameName}.json`, 'utf-8'),
-    );
-    this.mainChat = this.chatServiceFactory.create(chats.mainChat);
-    Object.entries({ ...chats })
-      .filter(([n]) => n !== 'mainChat')
-      .map(([chatName, chat]: [string, ChatServiceArgs]) => {
-        this.chats[chatName] = this.chatServiceFactory.create(chat);
-      });
-
-    // check if games folder exists
-    if (!existsSync('games')) {
-      mkdirSync('games');
-    }
-    // check if game file exists
-    if (!existsSync(`games/${this.currentGameName}.json`)) {
-      this.createGame();
-      return;
-    }
-    const game = JSON.parse(
-      readFileSync(`games/${this.currentGameName}.json`, 'utf-8'),
-    );
-    Object.entries(game).map(([key, value]: [string, unknown]) => {
-      this.gameState[key] = value;
-    });
-    this.gameGateway.sendChats();
   }
 }

@@ -7,7 +7,7 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
-import { GameService } from 'src/game/game.service';
+import { GameServiceFactory } from './gameServiceFactory';
 
 @WebSocketGateway(8000, {
   cors: {
@@ -21,12 +21,15 @@ export class GameGateway
   private clients: Set<any> = new Set();
 
   constructor(
-    @Inject(forwardRef(() => GameService))
-    private gameService: GameService,
+    @Inject(forwardRef(() => 'GameServiceFactory'))
+    private gameServiceFactory: GameServiceFactory,
   ) {}
 
-  sendChats() {
-    const game = this.gameService.getGame();
+  sendGame() {
+    const game = this.gameServiceFactory.getGame();
+    if (!game) {
+      return;
+    }
     this.clients.forEach((client) => {
       client.emit('chats', game);
     });
@@ -38,7 +41,7 @@ export class GameGateway
 
   handleConnection(client: Socket) {
     this.clients.add(client);
-    this.sendChats();
+    this.sendGame();
     this.logger.log('Client connected:', { clientId: client.id });
   }
 
@@ -53,6 +56,6 @@ export class GameGateway
       clientId: client.id,
       payload: payload,
     });
-    this.gameService.sendMessage({ ...payload, role: 'user' });
+    this.gameServiceFactory.sendMessage({ ...payload, role: 'user' });
   }
 }

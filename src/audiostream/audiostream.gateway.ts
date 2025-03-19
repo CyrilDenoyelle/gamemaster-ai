@@ -9,8 +9,8 @@ import {
 } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
-import { GameService } from 'src/game/game.service';
 import { VoiceService } from 'src/discord/voice/voice.service';
+import { GameServiceFactory } from 'src/game/gameServiceFactory';
 
 @WebSocketGateway(80, {
   cors: {
@@ -23,8 +23,8 @@ export class AudioStreamGateway
   constructor(
     @Inject(forwardRef(() => VoiceService))
     private readonly voiceService: VoiceService,
-    @Inject(forwardRef(() => GameService))
-    private readonly gameService: GameService,
+    @Inject('GameServiceFactory')
+    private readonly gameServiceFactory: GameServiceFactory,
   ) {}
   @WebSocketServer()
   server: Server;
@@ -62,7 +62,7 @@ export class AudioStreamGateway
     console.log('user_id', userId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
-    await this.gameService.sendMessage({
+    await this.gameServiceFactory.sendMessage({
       content: text,
       role: 'user',
     });
