@@ -43,7 +43,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       this.loadConnectedChannels();
     });
 
-    this.client.on('messageCreate', (message) => {
+    this.client.on(Events.MessageCreate, (message) => {
       this.messageService.handleMessage(message);
     });
 
