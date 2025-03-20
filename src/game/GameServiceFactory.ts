@@ -98,16 +98,8 @@ export class GameServiceFactory {
 
     files.forEach((file) => {
       const game = JSON.parse(readFileSync(join(guildFolder, file)).toString());
-      this.games.set(file.replace('.json', ''), game);
+      this.games.set(file, game);
     });
-  }
-
-  getGameFile(gameName: string): Game {
-    return this.games.get(gameName);
-  }
-
-  loadGame(game: Game) {
-    this.currentGame = this.create(game);
   }
 
   public saveGames() {
