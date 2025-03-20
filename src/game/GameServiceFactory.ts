@@ -6,7 +6,6 @@ import { type restrictedChatMessage } from 'src/chat/chat.service';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
-// import { ChatServiceArgs } from 'src/chat/chat.service';
 import { writeFileSync } from 'fs';
 
 export class GameServiceFactory {
@@ -98,8 +97,16 @@ export class GameServiceFactory {
 
     files.forEach((file) => {
       const game = JSON.parse(readFileSync(join(guildFolder, file)).toString());
-      this.games.set(file, game);
+      this.games.set(file.replace('.json', ''), game);
     });
+  }
+
+  getGameFile(gameName: string): Game {
+    return this.games.get(gameName);
+  }
+
+  loadGame(game: Game) {
+    this.currentGame = this.create(game);
   }
 
   public saveGames() {
