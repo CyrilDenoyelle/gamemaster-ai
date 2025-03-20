@@ -166,7 +166,7 @@ Ton rôle est d'être le narrateur et d'incarner l'univers ainsi que les personn
 
 Tout ce que tu dis doit: soit faire avancer l'histoire, soit renforcer l'ambiance.
 Fait vivre l'histoire aux joueurs de manière immersive et guide-les naturellement vers leur objectif actuel.
-Dis-leur les choses de façon symple.`,
+Dis-leur les choses de façon symple.${this.initPrompt ? `\nSi pertinent, prends en compte le prompt utilisateur suivant : "${this.initPrompt}"` : ''}`,
         },
       ],
     });
