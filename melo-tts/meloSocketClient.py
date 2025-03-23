@@ -1,14 +1,14 @@
+import datetime
+from melo.api import TTS
+import socketio  # pip install python-socketio
+import argparse
+import torch
+import os
 import time
 timerStart = time.time()
 
-import os
-import torch
-import argparse
 print(torch.__path__)
 print("torch.cuda.is_available()", torch.cuda.is_available())
-import socketio # pip install python-socketio
-from melo.api import TTS
-import datetime
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Parse command line arguments
@@ -19,18 +19,21 @@ args = parser.parse_args()
 
 # Speed is adjustable
 speed = 1.15
-device = 'cuda' # or cpu
+device = 'cuda'  # or cpu
 
 model = TTS(language='FR', device=device)
 print(f"model loaded: {time.time() - timerStart:.2f} seconds")
 
 # Initialize Socket.IO client
-sio = socketio.Client() # logger=True, engineio_logger=True, namespace=...
+sio = socketio.Client()  # logger=True, engineio_logger=True, namespace=...
 
 # Define Socket.IO events
+
+
 @sio.event
 def connect():
     print("Connected to the server")
+
 
 @sio.event
 def disconnect():
@@ -46,7 +49,7 @@ def on_text(text):
     if not os.path.exists('./ttsOut'):
         os.makedirs('./ttsOut')
 
-    output_path=f"./ttsOut/fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav"
+    output_path = f"./ttsOut/fr_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.wav"
     print(output_path)
     model.tts_to_file(
         text,
@@ -57,7 +60,7 @@ def on_text(text):
         # noise_scale: float = 0.6,
         # noise_scale_w: float = 0.8,
         # pbar: Any | None = None,
-        format = 'wav',
+        format='wav',
         # position: Any | None = None,
         # quiet=True,
     )
@@ -65,16 +68,18 @@ def on_text(text):
     print(f"audio generated: {time.time() - timerStart:.2f} seconds")
     sio.emit('transcribed-audio', output_path)
 
+
 @sio.on('connect_error')
 def on_connect_error(data):
     print("Connection failed:", data)
+
 
 def connect_to_server():
     server_url = 'ws://localhost:80'  # Use the correct URL
 
     sio.connect(
         url=server_url,
-        headers = { 'user_id': args.userId, 'guild_id': args.guildId }
+        headers={'user_id': args.userId, 'guild_id': args.guildId}
     )
 
     try:
@@ -85,6 +90,7 @@ def connect_to_server():
     except KeyboardInterrupt:
         print("Connection closed")
         sio.disconnect()
+
 
 if __name__ == "__main__":
     print("Time taken:", time.time() - timerStart)
