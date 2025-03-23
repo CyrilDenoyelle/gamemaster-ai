@@ -6,7 +6,6 @@ import { type restrictedChatMessage } from 'src/chat/chat.service';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
-// import { ChatServiceArgs } from 'src/chat/chat.service';
 import { writeFileSync } from 'fs';
 
 export class GameServiceFactory {
