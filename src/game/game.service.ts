@@ -71,7 +71,9 @@ export class GameService {
       const answer = await this.mainChat.sendMessage(message);
       this.gameGateway.sendGame();
       this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
+      return answer;
     }
+    return 'En attente du chat principal';
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   Client,
   Events,
   GatewayIntentBits,
+  Partials,
   VoiceChannel,
   VoiceState,
 } from 'discord.js';
@@ -31,7 +32,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.DirectMessageTyping,
+        GatewayIntentBits.DirectMessageReactions,
       ],
+      partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     });
   }
 

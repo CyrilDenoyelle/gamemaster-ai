@@ -2,11 +2,11 @@ import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
 import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
 import { GameGateway } from './game.gateway';
 import { Game, GameService } from './game.service';
-import { type restrictedChatMessage } from 'src/chat/chat.service';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { writeFileSync } from 'fs';
+import { Message } from 'discord.js';
 
 export class GameServiceFactory {
   private readonly logger = new Logger(GameServiceFactory.name);
@@ -118,8 +118,13 @@ export class GameServiceFactory {
     this.logger.log(`Game saved: ${fileName}`);
   }
 
-  public async sendMessage(args: restrictedChatMessage) {
-    await this.currentGame.sendMessage(args);
+  public async sendMessage(message: Message) {
+    // find this.currentGames.find(message.guildId || message.user.id) ?
+    const answer = await this.currentGame.sendMessage({
+      role: 'user',
+      content: message.content,
+    });
     this.saveGames();
+    return answer;
   }
 }
