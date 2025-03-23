@@ -7,6 +7,7 @@ import { join } from 'path';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { writeFileSync } from 'fs';
 import { Message } from 'discord.js';
+import { restrictedChatMessage } from 'src/chat/chat.service';
 
 export class GameServiceFactory {
   private readonly logger = new Logger(GameServiceFactory.name);
@@ -118,7 +119,13 @@ export class GameServiceFactory {
     this.logger.log(`Game saved: ${fileName}`);
   }
 
-  public async sendMessage(message: Message) {
+  public async sendMessage(message: restrictedChatMessage) {
+    const answer = await this.currentGame.sendMessage(message);
+    this.saveGames();
+    return answer;
+  }
+
+  public async sendDiscordMessage(message: Message) {
     // find this.currentGames.find(message.guildId || message.user.id) ?
     const answer = await this.currentGame.sendMessage({
       role: 'user',
