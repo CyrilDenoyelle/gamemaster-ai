@@ -9,6 +9,7 @@ import { writeFileSync } from 'fs';
 import { Message } from 'discord.js';
 import { restrictedChatMessage } from 'src/chat/chat.service';
 
+// test
 export class GameServiceFactory {
   private readonly logger = new Logger(GameServiceFactory.name);
   games: Map<string, Game> = new Map(); // gameName -> GameService
