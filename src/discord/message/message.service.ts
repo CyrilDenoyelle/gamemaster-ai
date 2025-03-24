@@ -17,7 +17,7 @@ export class MessageService {
     if (!message.author.bot) {
       if (message.content.startsWith('!')) {
         this.commandService.handleCommand(message);
-      } else if (!message.guildId) {
+      } else {
         const answer =
           await this.gameServiceFactory.sendDiscordMessage(message);
         if (message.channel?.isTextBased() && 'send' in message.channel) {

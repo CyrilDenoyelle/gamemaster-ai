@@ -15,26 +15,20 @@ export default class NewGame implements Command {
     this.gameServiceFactory = gameServiceFactory;
   }
 
-  execute(message: Message) {
-    const { member, guild, content } = message;
-
-    if (!guild) {
-      message.reply('This command can only be used in a server.');
-      return;
-    }
-
-    const voiceChannel = member?.voice.channel;
-    if (!voiceChannel) {
-      message.reply('You need to join a voice channel first!');
-      return;
-    }
-
+  async execute(message: Message) {
+    const { channel, content } = message;
     // Extract argument from the message content
     const args = content.split('!newgame ').slice(1); // Assuming the command is "!newgame <arg>"
     const userPrompt = args[0] || ''; // Use 'default' if no argument is provided
 
-    const game = this.gameServiceFactory.newGame(userPrompt);
-    const { gameName } = game.getGame();
-    message.reply(`New game started: ${gameName} !`);
+    const { gameName, message: firstMessage } =
+      await this.gameServiceFactory.newGame(channel?.id, userPrompt);
+
+    if (message.channel?.isTextBased() && 'send' in message.channel) {
+      message.channel
+        .send(`Nouvelle partie: ${gameName} ! Votre aventure commence ici !
+
+${firstMessage}`);
+    }
   }
 }

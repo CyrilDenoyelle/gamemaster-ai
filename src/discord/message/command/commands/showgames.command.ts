@@ -16,20 +16,13 @@ export default class ShowGames implements Command {
   }
 
   execute(message: Message) {
-    const { guild, content } = message;
-
-    if (!guild) {
-      message.reply('This command can only be used in a server.');
-      return;
-    }
+    const { channel, content } = message;
 
     // Extract argument from the message content
     const args = content.split(`${this.name} `).slice(1); // Assuming the command is "!commandName <arg>"
     const search = args[0] || ''; // Use 'default' if no argument is provided
 
-    const games = this.gameServiceFactory
-      .getGames()
-      .filter((game) => (search ? game.includes(search) : true));
+    const games = this.gameServiceFactory.getGames(channel?.id, search);
     message.reply(`games list:
 ${games.map((g) => `- ${g}`).join('\n')}
 

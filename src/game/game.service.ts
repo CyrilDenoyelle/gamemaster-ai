@@ -1,14 +1,14 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { AudioStreamGateway } from 'src/audiostream/audiostream.gateway';
+import { Inject, Injectable } from '@nestjs/common';
+import { Channel } from 'discord.js';
 import {
   ChatService,
   ChatServiceArgs,
   restrictedChatMessage,
 } from 'src/chat/chat.service';
 import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
-import { GameGateway } from './game.gateway';
 
 export type Game = {
+  channelId: Channel['id'];
   gameName: string;
   initPrompt?: string;
   gameState?: { [key: string]: unknown };
@@ -22,55 +22,32 @@ export class GameService {
   private initPrompt?: string;
   private chats: { [key: string]: ChatService } = {};
   private gameName: string;
+  private channelId: Channel['id'];
   constructor(
     gameData: Game,
-    private saveGame: () => void,
-    @Inject(forwardRef(() => AudioStreamGateway))
-    private audioStreamGateway: AudioStreamGateway,
+    private saveGame: (channelId: Channel['id']) => void,
     @Inject('ChatServiceFactory')
     private chatServiceFactory: ChatServiceFactory,
-    @Inject(forwardRef(() => GameGateway))
-    private gameGateway: GameGateway,
   ) {
     this.gameState = gameData.gameState || {};
     this.gameName = gameData.gameName;
     this.initPrompt = gameData.initPrompt;
+    this.channelId = gameData.channelId;
 
-    if (!gameData.mainChat) {
-      this.createGame();
-    } else {
+    if (gameData.mainChat) {
       this.mainChat = this.chatServiceFactory.create(gameData.mainChat);
       Object.entries(gameData.chats || {}).map(([chatName, chat]) => {
         this.chats[chatName] = this.chatServiceFactory.create(chat);
       });
     }
-
-    this.gameGateway.sendGame();
-  }
-
-  chatOrCreate(name: string, prompt?: string): ChatService {
-    if (!this.chats[name]) {
-      this.chats[name] = this.chatServiceFactory.create({
-        systemMessages: [
-          {
-            role: 'system',
-            content: prompt,
-          },
-        ],
-      });
-    }
-    return this.chats[name];
   }
 
   /**
    * send message to chat.
    */
   async sendMessage(message: restrictedChatMessage) {
-    this.gameGateway.sendGame();
     if (this.mainChat) {
       const answer = await this.mainChat.sendMessage(message);
-      this.gameGateway.sendGame();
-      this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
       return answer;
     }
     return 'En attente du chat principal';
@@ -91,10 +68,6 @@ export class GameService {
         content: prompt,
       },
     ];
-
-    // Si nécessaire, met a jour cette liste en prenant en compte le prompt utilisateur pour créer cette histoire: "J'aime bien l'espace, le cosmos"
-    // Ne donne pas d'exemple pour ces éléments.
-
     // Je suis le joueurs, créer des idées basées sur ces éléments pour moi.
     // Une idée a la foi, pour que les valide.
     // Quand tu a toute les information met "c'est parti!" a la fin du texte.
@@ -186,14 +159,12 @@ ${this.gameState.characters}
 
 Lance la partie de jeu de rôle pour les joueurs.
 Présente leur l'univers, les personnages et l'objectif a court terme.`,
-        // userId: process.env.BOT_ID,
       },
       'systemMessages',
     );
 
-    this.audioStreamGateway.sendText(answer.replace(/\*/g, ''));
-
-    this.saveGame();
+    this.saveGame(this.channelId);
+    return answer;
   }
 
   getGame(): Game {
@@ -205,9 +176,14 @@ Présente leur l'univers, les personnages et l'objectif a court terme.`,
     };
     return {
       gameName: this.gameName,
+      channelId: this.channelId,
       gameState: this.gameState,
       chats,
       mainChat: this.mainChat ? this.mainChat.get() : {},
     };
+  }
+
+  rename(newName: string) {
+    this.gameName = newName;
   }
 }
