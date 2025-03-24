@@ -79,7 +79,7 @@ def connect_to_server():
 
     sio.connect(
         url=server_url,
-        headers={'user_id': args.userId, 'guild_id': args.guildId}
+        headers={'channel_id': args.channelId, 'guild_id': args.guildId}
     )
 
     try:

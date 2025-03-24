@@ -58,14 +58,17 @@ export class AudioStreamGateway
   @SubscribeMessage('transcribed-text')
   async handleTranscribedText(socket: Socket, payload: string) {
     const { text } = JSON.parse(payload);
-    const userId = socket.handshake.headers.user_id; // talking user
-    console.log('user_id', userId);
+    const channelId = socket.handshake.headers.channel_id; // talking user
+    console.log('channel_id', channelId);
     console.log('socket', socket.id);
     console.log(`Transcribed text: ${text}`);
-    await this.gameServiceFactory.sendMessage({
-      content: text,
-      role: 'user',
-    });
+    await this.gameServiceFactory.sendMessage(
+      Array.isArray(channelId) ? channelId[0] : channelId,
+      {
+        content: text,
+        role: 'user',
+      },
+    );
   }
 
   /**
