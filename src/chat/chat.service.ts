@@ -66,7 +66,7 @@ export class ChatService {
    */
   async randomSuggestion(
     message?: restrictedChatMessage,
-    { min, max }: { min: number; max: number } = { min: 2, max: 4 },
+    { min, max }: { min: number; max: number } = { min: 2, max: 3 },
   ) {
     await this.shiftMessagesUntilWithinLimit();
     this.listMessages.push(message);
@@ -105,7 +105,7 @@ export class ChatService {
 
     this.listMessages.push(...listAnswer);
     // choose a random answer from the list of answers
-    const answer = listAnswer[Math.floor(Math.random() * listAnswer.length)];
+    const answer = listAnswer[listAnswer.length - 1];
     // push the "please generate" message and the random answer
     this.push(usermessage, answer);
 
