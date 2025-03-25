@@ -182,19 +182,9 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`!showgames\``,
     return answer;
   }
 
-  public async sendDiscordMessage(message: Message, retry: number = 0) {
-    if (retry > 2) {
-      return "Une erreur s'est produite lors du chargment de la partie.";
-    }
+  public async sendDiscordMessage(message: Message) {
     if (!this.currentGames.has(message.channel.id)) {
-      const { status, message: msg } = await this.loadGameFromStorage(
-        message.channel.id,
-      );
-      if (status === 'error') {
-        return msg;
-      }
-      const resp = await this.sendDiscordMessage(message, retry + 1);
-      return `${msg}:\n${resp}`;
+      return;
     }
 
     const answer = await this.currentGames.get(message.channel.id).sendMessage({
