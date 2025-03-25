@@ -17,7 +17,7 @@ import { restrictedChatMessage } from 'src/chat/chat.service';
 export class GameServiceFactory {
   private readonly logger = new Logger(GameServiceFactory.name);
   storageFolder = './games';
-  currentGames: Map<string, GameService> = new Map(); // id: where game take place (userId or guildId) -> GameService: the game
+  currentGames: Map<string, GameService> = new Map(); // channel: where game take place -> GameService
 
   constructor(
     @Inject(forwardRef(() => 'ChatServiceFactory'))
@@ -156,6 +156,11 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`!showgames\``,
     const fileName = `${game.gameName}.json`;
     writeFileSync(join(channelFolder, fileName), JSON.stringify(game, null, 2));
     this.logger.log(`Game saved: ${fileName}`);
+  }
+
+  public pauseGame(channelId: Channel['id']) {
+    this.saveCurrentGame(channelId);
+    this.currentGames.delete(channelId);
   }
 
   public renameGame(channelId: Channel['id'], newName: string) {
