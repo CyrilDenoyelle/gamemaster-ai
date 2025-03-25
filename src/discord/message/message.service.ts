@@ -20,7 +20,11 @@ export class MessageService {
       } else {
         const answer =
           await this.gameServiceFactory.sendDiscordMessage(message);
-        if (message.channel?.isTextBased() && 'send' in message.channel) {
+        if (
+          message.channel?.isTextBased() &&
+          'send' in message.channel &&
+          answer
+        ) {
           message.channel.send(answer);
         }
       }
