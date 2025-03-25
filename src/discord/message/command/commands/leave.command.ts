@@ -15,11 +15,11 @@ export default class JoinCommand implements Command {
     const { guild } = message;
 
     if (!guild) {
-      message.reply('This command can only be used in a server.');
+      message.reply('Cette commande ne peut être utilisée que sur un serveur.');
       return;
     }
 
     this.voiceService.leaveChannel(guild);
-    message.reply(`Leaved the voice channel in server: ${guild.name}`);
+    message.reply(`A quitté le vocal sur le serveur : ${guild.name}`);
   }
 }

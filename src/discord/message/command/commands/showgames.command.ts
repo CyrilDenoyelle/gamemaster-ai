@@ -23,9 +23,9 @@ export default class ShowGames implements Command {
     const search = args[0] || ''; // Use 'default' if no argument is provided
 
     const games = this.gameServiceFactory.getGames(channel?.id, search);
-    message.reply(`games list:
+    message.reply(`Liste des parties sauvegardées :
 ${games.map((g) => `- ${g}`).join('\n')}
 
-To load a game, use the command \`!loadgame <gameName>\``);
+Pour charger une partie \`!loadgame <gameName>\``);
   }
 }

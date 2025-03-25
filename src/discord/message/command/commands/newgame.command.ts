@@ -4,7 +4,7 @@ import { GameServiceFactory } from 'src/game/gameServiceFactory';
 
 export default class NewGame implements Command {
   name = 'newgame';
-  description = 'Starts a new game. (!newgame <userPrompt>)';
+  description = 'Démare une nouvelle partie. (!newgame <userPrompt>)';
 
   private gameServiceFactory: GameServiceFactory;
   constructor({

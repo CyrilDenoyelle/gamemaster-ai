@@ -15,7 +15,9 @@ export default class JoinCommand implements Command {
     const { member, guild } = message;
 
     if (!guild) {
-      message.reply('This command can only be used in a server.');
+      message.reply(
+        'Cette commande ne peut être utilisée que sur un serveur..',
+      );
       return;
     }
 
