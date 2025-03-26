@@ -32,12 +32,17 @@ Création en cours...`);
     const { gameName, message: firstMessage } =
       await this.gameServiceFactory.newGame(
         channel?.id,
-        interaction.options.getString('gamename') || '',
+        interaction.options.getString('user-prompt') || '',
       );
 
-    interaction.channel
-      .send(`Nouvelle partie: ${gameName} ! Votre aventure commence ici !
+    // split into chunks of 2000 characters
+    const messages =
+      `Nouvelle partie: ${gameName} ! Votre aventure commence ici !
 
-${firstMessage}`);
+    ${firstMessage}`.match(/[\s\S]{1,2000}/g);
+
+    for await (const message of messages) {
+      await interaction.channel?.send(message);
+    }
   }
 }
