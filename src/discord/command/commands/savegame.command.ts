@@ -15,8 +15,12 @@ export default class SaveGame implements Command {
 
   data = new SlashCommandBuilder()
     .setName('savegame')
-    .setDescription(
-      'Save current game with given name if provided. (!savegame <newName>)',
+    .setDescription('Save the current game, optionally with a new name.')
+    .addStringOption((option) =>
+      option
+        .setName('new-name')
+        .setDescription('New name for the game.')
+        .setRequired(false),
     );
 
   async execute(interaction: Interaction) {
@@ -28,6 +32,11 @@ export default class SaveGame implements Command {
 Utilisez \`/newgame\` pour démarrer une nouvelle partie.
 Ou \`/showgames\` pour voir la liste des parties sauvegardées.
 Puis \`/loadgame <gameName>\` pour charger une partie existante.`);
+      return;
+    }
+    const newName = interaction.options.getString('new-name');
+    if (newName) {
+      this.gameServiceFactory.renameGame(channel?.id, newName);
       return;
     }
     this.gameServiceFactory.saveCurrentGame(channel?.id);
