@@ -1,12 +1,10 @@
 import { Command } from '../command.interface';
-import { Message } from 'discord.js';
+import { Interaction, SlashCommandBuilder } from 'discord.js';
 import { GameServiceFactory } from 'src/game/gameServiceFactory';
 
 export default class PauseGame implements Command {
-  name = 'pausegame';
-  description = 'Met la partie en pause. (!pausegame <nouveauNom>)';
-
   private gameServiceFactory: GameServiceFactory;
+
   constructor({
     gameServiceFactory,
   }: {
@@ -15,12 +13,17 @@ export default class PauseGame implements Command {
     this.gameServiceFactory = gameServiceFactory;
   }
 
-  execute(message: Message) {
-    const { channel } = message;
+  data = new SlashCommandBuilder()
+    .setName('pausegame')
+    .setDescription('Pause the current game.');
+
+  async execute(interaction: Interaction) {
+    if (!interaction.isChatInputCommand()) return;
+    const { channel } = interaction;
 
     this.gameServiceFactory.pauseGame(channel?.id);
-    message.reply(
-      `Game paused, use \`!loadgame <gameName>\` to resume the game.`,
+    interaction.reply(
+      `Partie mise en pause, utilisez \`/loadgame <gameName>\` pour reprendre la partie.`,
     );
   }
 }

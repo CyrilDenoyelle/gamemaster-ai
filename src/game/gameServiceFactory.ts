@@ -92,18 +92,18 @@ export class GameServiceFactory {
       mkdirSync(channelFolder);
       return {
         message:
-          'Aucune partie sauvegardée dans ce channel. Commencez une nouvelle partie avec: `!newgame <prompt>`',
+          'Aucune partie sauvegardée dans ce channel. Commencez une nouvelle partie avec: `/newgame <prompt>`',
         status: 'error',
       };
     }
 
     if (gameName) {
-      const gameFile = join(channelFolder, gameName);
+      const gameFile = join(channelFolder, `${gameName}.json`);
       if (!existsSync(gameFile)) {
         return {
-          message: `Aucune partie "${gameFile}" trouvée.
-Commencez une nouvelle partie avec: \`!newgame <prompt>\`
-Ou affichez les parties sauvegardées dans ce channel avec: \`!showgames\``,
+          message: `Aucune partie "${gameName}" trouvée.
+Commencez une nouvelle partie avec: \`/newgame <prompt>\`
+Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
           status: 'error',
         };
       } else {
@@ -128,7 +128,7 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`!showgames\``,
     if (games.length === 0) {
       return {
         message:
-          'Aucune partie sauvegardée dans ce channel. Commencez une nouvelle partie avec: `!newgame <prompt>`',
+          'Aucune partie sauvegardée dans ce channel. Commencez une nouvelle partie avec: `/newgame <prompt>`',
         status: 'error',
       };
     }
