@@ -163,6 +163,24 @@ Présente leur l'univers, les personnages et l'objectif a court terme.`,
       'systemMessages',
     );
 
+    const generatedGameName = await this.chatServiceFactory
+      .create({})
+      .sendMessage({
+        role: 'system',
+        content: `L'univers :
+${this.gameState.univers}
+
+
+Les personnages :
+${this.gameState.characters}
+
+Invente un court nom pour cette partie de jeu de rôle.
+Réponds-moi juste avec le nom de la partie. Pas d'extension, pas de caractères spéciaux.`,
+      });
+
+    console.log('generatedGameName', generatedGameName);
+    this.rename(generatedGameName);
+
     this.saveGame(this.channelId);
     return answer;
   }
