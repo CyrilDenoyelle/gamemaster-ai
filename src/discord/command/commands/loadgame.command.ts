@@ -28,7 +28,6 @@ export default class LoadGame implements Command {
   async execute(interaction: Interaction) {
     if (!interaction.isChatInputCommand()) return;
     const { channel } = interaction;
-    console.log('LoadGame.execute', interaction.user.username);
 
     const resp = await this.gameServiceFactory.loadGameFromStorage(
       channel?.id,

@@ -30,6 +30,9 @@ export class CommandService {
     }
 
     try {
+      this.logger.log(
+        `/${interaction.commandName} executed by user: "${interaction.user.username}"`,
+      );
       await command.execute(interaction);
     } catch (error) {
       this.logger.error('handleCommand error', error);

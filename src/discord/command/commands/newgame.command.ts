@@ -35,7 +35,6 @@ Création en cours...`);
         interaction.options.getString('gamename') || '',
       );
 
-    // if (interaction.channel?.isTextBased() && 'send' in interaction.channel) {
     interaction.channel
       .send(`Nouvelle partie: ${gameName} ! Votre aventure commence ici !
 
