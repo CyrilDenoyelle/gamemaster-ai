@@ -9,7 +9,7 @@ export class CommandService {
 
   async registerCommands(commands: Command[]) {
     commands.forEach((command) => {
-      this.logger.log('Registering command:', command.data.name);
+      this.logger.log(`Registering command: ${command.data.name}`);
       if (this.commands.has(command.data.name)) {
         throw new Error(`Command "${command}" is already registered.`);
       }
