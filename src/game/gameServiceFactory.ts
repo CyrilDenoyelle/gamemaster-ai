@@ -160,6 +160,26 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
     };
   }
 
+  async summarizeCurrentGame(channelId: Channel['id']) {
+    if (!this.currentGames.has(channelId)) {
+      return;
+    }
+    const game = this.currentGames.get(channelId);
+
+    return this.chatServiceFactory.create({}).sendMessage({
+      role: 'user',
+      content: `Génère, en quelques lignes, un résumé de ces messages d'une partie de jeu de rôle, en commençant par nous rappeler qui nous sommes en tant que joueur(s).
+
+"""
+${game
+  .getGame()
+  .mainChat.messages.slice(-6)
+  .map((m) => `${m.role}: ${m.content}`)
+  .join('\n')}
+"""`,
+    });
+  }
+
   public saveCurrentGame(channelId: Channel['id']) {
     // save game to storage
     const channelFolder = join(this.storageFolder, channelId);

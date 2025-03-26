@@ -33,6 +33,19 @@ export default class LoadGame implements Command {
       channel?.id,
       interaction.options.getString('gamename') || '',
     );
-    interaction.reply(resp.message);
+    interaction.reply(
+      resp.status !== 'error'
+        ? `${resp.message}
+génération du resumé...`
+        : resp.message,
+    );
+
+    const resume = await this.gameServiceFactory.summarizeCurrentGame(
+      channel?.id,
+    );
+    if (resume) {
+      interaction.channel?.send(resume);
+      return;
+    }
   }
 }
