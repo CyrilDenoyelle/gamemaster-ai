@@ -17,12 +17,26 @@ import { restrictedChatMessage } from 'src/chat/chat.service';
 export class GameServiceFactory {
   private readonly logger = new Logger(GameServiceFactory.name);
   storageFolder = './games';
+  gamesFileName = 'current-games.json';
   currentGames: Map<string, GameService> = new Map(); // channel: where game take place -> GameService
 
   constructor(
     @Inject(forwardRef(() => 'ChatServiceFactory'))
     private chatServiceFactory: ChatServiceFactory,
-  ) {}
+  ) {
+    if (!existsSync(this.storageFolder)) {
+      mkdirSync(this.storageFolder);
+    }
+    const gamesFilePath = join(this.storageFolder, this.gamesFileName);
+    if (!existsSync(gamesFilePath)) {
+      writeFileSync(gamesFilePath, '[]');
+    }
+    const currentGames = JSON.parse(readFileSync(gamesFilePath).toString());
+
+    currentGames.forEach((game: Game) => {
+      this.create(game);
+    });
+  }
 
   async newGame(
     channelId: Channel['id'],
@@ -35,7 +49,7 @@ export class GameServiceFactory {
       ...{ initPrompt },
     });
 
-    this.currentGames.set(channelId, game);
+    this.set(channelId, game);
     return { gameService: game, gameName: game.getGame().gameName, message };
   }
 
@@ -109,7 +123,7 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
       } else {
         const game = JSON.parse(readFileSync(gameFile).toString());
         const { game: loadedGame, message } = await this.create(game);
-        this.currentGames.set(channelId, loadedGame); // load the game
+        this.set(channelId, loadedGame); // load the game
         return {
           message: `Partie "${gameName}" chargée.${message ? `\n${message}` : ''}`,
           status: 'ok',
@@ -138,7 +152,7 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
       JSON.parse(readFileSync(join(channelFolder, games[0])).toString()),
     );
     const name = games[0].replace('.json', '');
-    this.currentGames.set(channelId, loadedGame);
+    this.set(channelId, loadedGame);
 
     return {
       message: `Partie "${name}" chargée.`,
@@ -160,7 +174,7 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
 
   public pauseGame(channelId: Channel['id']) {
     this.saveCurrentGame(channelId);
-    this.currentGames.delete(channelId);
+    this.delete(channelId);
   }
 
   public renameGame(channelId: Channel['id'], newName: string) {
@@ -175,6 +189,32 @@ Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
       unlinkSync(oldGameFile);
     }
     return game;
+  }
+
+  private exportCurrentGamesToJson() {
+    // Save the currentGames Map to a JSON file
+    const games = Array.from(this.currentGames.entries()).map(
+      ([channelId, gameService]) => ({
+        channelId,
+        game: gameService.getGame(),
+      }),
+    );
+    const serializedGames = JSON.stringify(games, null, 2);
+    writeFileSync(
+      join(this.storageFolder, 'currentGames.json'),
+      serializedGames,
+    );
+    this.logger.log('Current games saved');
+  }
+
+  private set(channelId: Channel['id'], loadedGame: GameService) {
+    this.currentGames.set(channelId, loadedGame);
+    this.exportCurrentGamesToJson();
+  }
+
+  private delete(channelId: Channel['id']) {
+    this.currentGames.delete(channelId);
+    this.exportCurrentGamesToJson();
   }
 
   // used for voice messages
