@@ -19,7 +19,11 @@ export class MessageService {
         'send' in message.channel &&
         answer
       ) {
-        message.channel.send(answer);
+        const messageChunks = answer.match(/[\s\S]{1,2000}/g);
+
+        for await (const messageChunk of messageChunks) {
+          await message.channel.send(messageChunk);
+        }
       }
     }
   }
