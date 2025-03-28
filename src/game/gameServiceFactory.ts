@@ -55,6 +55,7 @@ export class GameServiceFactory {
     const { game, message } = await this.create({
       channelId,
       gameName: newGameName,
+      fileName: newGameName,
       ...{ initPrompt },
     });
 
@@ -101,11 +102,11 @@ export class GameServiceFactory {
   /**
    * Fetches game file from storage for a specific channel. Load it in currentGames.
    * @param channelId The channel id.
-   * @param gameName The name of the game to fetch. if provided, load the game.
+   * @param fileName The name of the game to fetch. if provided, load the game.
    */
   public async loadGameFromStorage(
     channelId: Channel['id'],
-    gameName?: string,
+    fileName?: string,
   ): Promise<{ message: string; status: string }> {
     if (!existsSync(this.storageFolder)) {
       mkdirSync(this.storageFolder);
@@ -120,21 +121,21 @@ export class GameServiceFactory {
       };
     }
 
-    if (gameName) {
-      const gameFile = join(channelFolder, `${gameName}.json`);
+    if (fileName) {
+      const gameFile = join(channelFolder, `${fileName}.json`);
       if (!existsSync(gameFile)) {
         return {
-          message: `Aucune partie "${gameName}" trouvée.
+          message: `Aucune partie "${fileName}" trouvée.
 Commencez une nouvelle partie avec: \`/newgame <prompt>\`
 Ou affichez les parties sauvegardées dans ce channel avec: \`/showgames\``,
           status: 'error',
         };
       } else {
-        const game = JSON.parse(readFileSync(gameFile).toString());
+        const game: Game = JSON.parse(readFileSync(gameFile).toString());
         const { game: loadedGame, message } = await this.create(game);
         this.set(channelId, loadedGame); // load the game
         return {
-          message: `Partie "${gameName}" chargée.${message ? `\n${message}` : ''}`,
+          message: `Partie "${fileName}" chargée.${message ? `\n${message}` : ''}`,
           status: 'ok',
         };
       }
@@ -196,7 +197,10 @@ ${game
       return;
     }
     const game = this.currentGames.get(channelId).getGame();
-    const fileName = `${game.gameName}.json`;
+    const fileName = game.fileName
+      ? `${game.fileName}.json`
+      : `${game.gameName}.json`;
+
     writeFileSync(join(channelFolder, fileName), JSON.stringify(game, null, 2));
     this.logger.log(`Game saved: ${fileName}`);
   }
@@ -208,12 +212,12 @@ ${game
 
   public renameGame(channelId: Channel['id'], newName: string) {
     const game = this.currentGames.get(channelId);
-    const oldName = game.getGame().gameName;
+    const oldFileName = game.getGame().fileName;
     game.rename(newName);
     this.saveCurrentGame(channelId);
     // delete old game file
     const channelFolder = join(this.storageFolder, channelId);
-    const oldGameFile = join(channelFolder, `${oldName}.json`);
+    const oldGameFile = join(channelFolder, `${oldFileName}.json`);
     if (existsSync(oldGameFile)) {
       unlinkSync(oldGameFile);
     }

@@ -26,7 +26,7 @@ export default class SaveGame implements Command {
   async execute(interaction: Interaction) {
     if (!interaction.isChatInputCommand()) return;
     const { channel } = interaction;
-    const game = this.gameServiceFactory.getGame(channel?.id);
+    let game = this.gameServiceFactory.getGame(channel?.id);
     if (!game) {
       interaction.reply(`Pas de partie en cours dans ce channel.
 Utilisez \`/newgame\` pour démarrer une nouvelle partie.
@@ -34,12 +34,14 @@ Ou \`/showgames\` pour voir la liste des parties sauvegardées.
 Puis \`/loadgame <gameName>\` pour charger une partie existante.`);
       return;
     }
+    interaction.reply(`Sauvegarde de la partie "${game.gameName}" en cours...`);
     const newName = interaction.options.getString('new-name');
     if (newName) {
       this.gameServiceFactory.renameGame(channel?.id, newName);
-      return;
     }
     this.gameServiceFactory.saveCurrentGame(channel?.id);
-    interaction.reply(`Partie "${game.gameName}" sauvegardé !`);
+    game = this.gameServiceFactory.getGame(channel?.id);
+    channel.send(`Partie "${game.gameName}" sauvegardé !
+Nouveau nom du fichier: ${game.fileName}`);
   }
 }

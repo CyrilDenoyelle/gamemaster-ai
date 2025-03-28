@@ -10,6 +10,7 @@ import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
 export type Game = {
   channelId: Channel['id'];
   gameName: string;
+  fileName: string;
   initPrompt?: string;
   gameState?: { [key: string]: unknown };
   chats?: { [key: string]: ChatServiceArgs };
@@ -22,6 +23,7 @@ export class GameService {
   private initPrompt?: string;
   private chats: { [key: string]: ChatService } = {};
   private gameName: string;
+  private fileName: string;
   private channelId: Channel['id'];
   constructor(
     gameData: Game,
@@ -31,6 +33,7 @@ export class GameService {
   ) {
     this.gameState = gameData.gameState || {};
     this.gameName = gameData.gameName;
+    this.fileName = gameData.fileName;
     this.initPrompt = gameData.initPrompt;
     this.channelId = gameData.channelId;
 
@@ -196,6 +199,7 @@ Réponds-moi juste avec le nom de la partie. Pas d'extension, pas de caractères
       gameName: this.gameName,
       channelId: this.channelId,
       gameState: this.gameState,
+      fileName: this.fileName,
       chats,
       mainChat: this.mainChat ? this.mainChat.get() : {},
     };
@@ -203,5 +207,7 @@ Réponds-moi juste avec le nom de la partie. Pas d'extension, pas de caractères
 
   rename(newName: string) {
     this.gameName = newName;
+    this.fileName = newName.replace(/[^a-z0-9]/gi, '_');
+    return this.fileName;
   }
 }

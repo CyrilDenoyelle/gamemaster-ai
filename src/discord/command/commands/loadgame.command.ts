@@ -18,7 +18,7 @@ export default class LoadGame implements Command {
     .setDescription('Load a saved game by its name.')
     .addStringOption((option) =>
       option
-        .setName('gamename')
+        .setName('filename')
         .setDescription(
           'The name of the game to load, by default the last saved game.',
         )
@@ -31,7 +31,7 @@ export default class LoadGame implements Command {
 
     const resp = await this.gameServiceFactory.loadGameFromStorage(
       channel?.id,
-      interaction.options.getString('gamename') || '',
+      interaction.options.getString('filename') || '',
     );
     interaction.reply(
       resp.status !== 'error'
