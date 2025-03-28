@@ -28,11 +28,11 @@ export default class ShowGames implements Command {
     const { channel } = interaction;
 
     // Extract argument from the message content
-    const search = interaction.options.getString('gamename');
+    const search = interaction.options.getString('search');
     const games = this.gameServiceFactory.getGames(channel?.id, search);
     interaction.reply(`Liste des parties sauvegardées :
-${games.map((g) => `- ${g}`).join('\n')}
+${games.map((fileName) => `- ${fileName}`).join('\n')}
 
-Pour charger une partie \`!loadgame <gameName>\``);
+Pour charger une partie \`/loadgame <gameName>\``);
   }
 }
