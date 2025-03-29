@@ -15,7 +15,7 @@ export default class NewGame implements Command {
 
   data = new SlashCommandBuilder()
     .setName('newgame')
-    .setDescription('Starts a new game. (!newgame <userPrompt>)')
+    .setDescription('Starts a new game.')
     .addStringOption((option) =>
       option
         .setName('user-prompt')
