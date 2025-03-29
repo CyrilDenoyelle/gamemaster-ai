@@ -39,7 +39,7 @@ Création en cours...`);
     const messages =
       `Nouvelle partie: ${gameName} ! Votre aventure commence ici !
 
-    ${firstMessage}`.match(/[\s\S]{1,2000}/g);
+${firstMessage}`.match(/[\s\S]{1,2000}/g);
 
     for await (const message of messages) {
       await interaction.channel?.send(message);
