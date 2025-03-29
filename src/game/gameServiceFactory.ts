@@ -34,12 +34,15 @@ export class GameServiceFactory {
     const currentGames = JSON.parse(readFileSync(gamesFilePath).toString());
 
     (async () => {
-      for await (const { channelId, gameName } of currentGames) {
+      for await (const { channelId, fileName } of currentGames) {
         const gameFile = join(
           this.storageFolder,
           channelId,
-          `${gameName}.json`,
+          `${fileName}.json`,
         );
+        if (!existsSync(gameFile)) {
+          return;
+        }
         const gameData = JSON.parse(readFileSync(gameFile).toString());
         const { game: gameService } = await this.create(gameData);
         this.set(gameData.channelId, gameService);
@@ -229,7 +232,7 @@ ${game
     const games = Array.from(this.currentGames.entries()).map(
       ([channelId, gameService]) => ({
         channelId,
-        gameName: gameService.getGame().gameName,
+        fileName: gameService.getGame().fileName,
       }),
     );
     const serializedGames = JSON.stringify(games, null, 2);
