@@ -170,9 +170,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       await rest.put(Routes.applicationCommands(this.client.user.id), {
         body: commands.map((command) => command.data.toJSON()),
       });
-      this.logger.log('✅ Slash commands registered successfully!');
+      this.logger.log('Slash commands registered successfully!');
     } catch (error) {
-      this.logger.error('❌ Error registering slash commands:', error);
+      this.logger.error('Error registering slash commands:', error);
     }
   }
 }
