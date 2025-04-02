@@ -44,7 +44,12 @@ génération du resumé...`
       channel?.id,
     );
     if (resume) {
-      interaction.channel?.send(resume);
+      const messageChunks = resume.match(/[\s\S]{1,2000}/g);
+
+      for await (const messageChunk of messageChunks) {
+        await interaction.channel.send(messageChunk);
+      }
+
       return;
     }
   }
