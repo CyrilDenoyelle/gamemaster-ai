@@ -56,80 +56,87 @@ export class GameService {
     return 'En attente du chat principal';
   }
 
+  private async creationPrompt(
+    purpose: string,
+    subject: string,
+    min: number = 2,
+    max: number = 3,
+  ) {
+    if (!this.chats[subject]) {
+      this.chats[subject] = this.chatServiceFactory.create({
+        systemMessages: [
+          {
+            role: 'system',
+            content: `Tu es un assistant créatif pour les maîtres de jeu de rôle.`,
+          },
+        ],
+      });
+      await this.chats[subject].sendMessage({
+        role: 'user',
+        content: `Détermine les cinq éléments essentiels nécessaires pour "${purpose}".
+Ces éléments doivent être génériques et applicables à divers contextes de jeu de rôle, sans fournir d'exemples spécifiques.`,
+      });
+      await this.chats[subject].sendMessage({
+        role: 'user',
+        content: `Organise ces idées dans un ordre logique pour les présenter aux joueurs, en allant du plus général au plus spécifique.`,
+      });
+    }
+    // todo prompt : extrait les informations de ce prompt utilisateur qui pourrait être utile pour "${purpose}".
+    const rawAnswer = await this.chats[subject].randomSuggestion(
+      {
+        role: 'user',
+        content: `Génère une courte idée pour chaque élément de la liste. Juste le texte.${
+          this.initPrompt
+            ? `\nSi pertinent, prends en compte le prompt utilisateur suivant : "${this.initPrompt}"`
+            : ''
+        }`,
+      },
+      { min, max },
+    );
+
+    const questions = await this.chatServiceFactory.create({}).sendMessage({
+      role: 'user',
+      content: `Pose-moi quelques questions pour m'aider à "${purpose}", basé sur ces éléments:
+"${rawAnswer}"
+Uniquement une liste de questions.`,
+    });
+
+    this.chats[subject].sendMessage({
+      role: 'user',
+      content: questions,
+    });
+
+    return this.chats[subject].sendMessage({
+      role: 'user',
+      content: `Crée une nouvelle description narrative en intégrant également, si pertinent, tes réponses.`,
+    });
+  }
+
   /**
    * create game files.
    */
   async createGame() {
-    const sys = (
-      prompt: string,
-    ): {
-      role: restrictedChatMessage['role'];
-      content: string;
-    }[] => [
-      {
-        role: 'system',
-        content: prompt,
-      },
-    ];
     // Je suis le joueurs, créer des idées basées sur ces éléments pour moi.
     // Une idée a la foi, pour que les valide.
     // Quand tu a toute les information met "c'est parti!" a la fin du texte.
 
     // Univers Creation
-    this.chats.universCreation = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Tu es un assistant expert en création d'univers pour les maîtres de jeu de rôle. `,
-      ),
-    });
-    await this.chats.universCreation.sendMessage({
-      role: 'user',
-      content: `Identifie les six éléments fondamentaux permettant d'immerger les joueurs dans un nouvel univers.
-Ces éléments doivent être génériques et adaptables à différents contextes de jeu, sans inclure d'exemples spécifiques.`,
-    });
-
-    await this.chats.universCreation.sendMessage({
-      role: 'user',
-      content: `Met les dans l'ordre dans le quel ces idées devraient être communiquées au(x) joueur(x), du plus global au plus précis.`,
-    });
-
-    this.gameState.univers = await this.chats.universCreation.randomSuggestion(
-      {
-        role: 'user',
-        content: `Génère une courte idée pour chaque élément de la liste. Juste le texte.${this.initPrompt ? `\nSi pertinent, prends en compte le prompt utilisateur suivant: "${this.initPrompt}"` : ''}`,
-      },
-      { min: 3, max: 4 },
+    this.gameState.univers = await this.creationPrompt(
+      `créer un univers et immerger les joueurs`,
+      `univers`,
     );
-    this.gameState.universResume = await this.chats.universCreation.sendMessage(
-      {
-        role: 'user',
-        content: `Résume l'univers en quelques phrases.`,
-      },
-    );
+
+    this.gameState.universResume = await this.chats.univers.sendMessage({
+      role: 'user',
+      content: `Résume l'univers en quelques phrases.`,
+    });
 
     // Character Creation
-    this.chats.characterCreation = this.chatServiceFactory.create({
-      systemMessages: sys(
-        `Tu es un assistant expert en création de personnages pour les maîtres de jeu de rôle.`,
-      ),
-    });
-    await this.chats.characterCreation.sendMessage({
-      role: 'user',
-      content: `Identifie les six éléments fondamentaux permettant de créer un personnage unique et mémorables, qui partirait a l'aventure dans ce jeu de rôle.
-Ces éléments doivent être génériques et adaptables à différents contextes de jeu, sans inclure d'exemples spécifiques.`,
-      // créer le nombre de personnage donnés dans la commande de création de la game.
-    });
-    await this.chats.characterCreation.sendMessage({
-      role: 'user',
-      content: `Met les dans l'ordre dans le quel ces idées devraient être communiquées au(x) joueur(x), du plus global au plus précis.`,
-    });
-    this.gameState.characters =
-      await this.chats.characterCreation.randomSuggestion(
-        {
-          role: 'user',
-          content: `Pour chaque élément de la liste, génère une idée concise et uniquement textuelle.${this.initPrompt ? `\nSi pertinent, prends en compte le prompt utilisateur suivant : "${this.initPrompt}"` : ''}`,
-        },
-        { min: 3, max: 4 },
-      );
+    this.gameState.characters = await this.creationPrompt(
+      `créer un personnage unique et mémorable, qui partirait à l'aventure dans cet univers:
+"${this.gameState.universResume}"`,
+      `characters`,
+    );
 
     this.mainChat = this.chatServiceFactory.create({
       systemMessages: [
@@ -181,7 +188,6 @@ Invente un court nom pour cette partie de jeu de rôle.
 Réponds-moi juste avec le nom de la partie. Pas d'extension, pas de caractères spéciaux.`,
       });
 
-    console.log('generatedGameName', generatedGameName);
     this.rename(generatedGameName);
 
     this.saveGame(this.channelId);
