@@ -52,7 +52,6 @@ export class ChatService {
     chatName: keyof ChatServiceArgs = 'messages',
   ) {
     this[chatName].push(message);
-    const timer = Date.now();
     await this.shiftMessagesUntilWithinLimit();
     const textAnswer = await this.openAiService.sendChat(this.getChat());
     this.push({ role: 'assistant', content: textAnswer.trim() });
@@ -166,10 +165,9 @@ export class ChatService {
   /**
    * Get the number of tokens in the chat
    */
-  tokenCount() {
-    const chat = this.getChat() as ChatMessage[];
+  tokenCount(chat = this.getChat()) {
     const tokens = encodeChat(
-      chat,
+      chat as ChatMessage[],
       process.env.GPT_TOKENIZER_CHAT_MODEL as ModelName,
     );
     return tokens.length;
@@ -178,11 +176,12 @@ export class ChatService {
   /**
    * shift messages until total tokens is less than process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN
    */
-  async shiftMessagesUntilWithinLimit() {
+  async shiftMessagesUntilWithinLimit(
+    limit: number = parseInt(process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN),
+  ) {
     const tokenCount = this.tokenCount();
-    if (
-      tokenCount > parseInt(process.env.OPENAI_API_MAX_CHAT_TOTAL_TOKEN, 10)
-    ) {
+    // medium term memory
+    if (tokenCount > limit) {
       const forgotenMessage: restrictedChatMessage = this.messages.shift();
       this.forgotenMessages.push(forgotenMessage);
       const resume = await this.openAiService.sendChat([
@@ -201,6 +200,31 @@ export class ChatService {
         content: resume as string,
       });
       return await this.shiftMessagesUntilWithinLimit();
+    }
+
+    // long term memory
+    const tokenLongTermMemory = this.tokenCount(this.longTermMemory);
+    if (tokenLongTermMemory > limit / 5) {
+      const messagesToSummarize = this.longTermMemory;
+      const summary = await this.openAiService.sendChat([
+        {
+          role: 'system',
+          content: `Combine et résume les messages suivants en une phrase, en conservant uniquement les informations les plus importantes.
+
+${messagesToSummarize.map((m) => `- ${m.content}`).join('\n\n')}
+
+Ne garde pas les questions.
+Pas d'explication.`,
+        },
+      ]);
+
+      this.longTermMemory = [
+        {
+          role: 'system',
+          content: summary,
+        },
+      ];
+      return await this.shiftMessagesUntilWithinLimit(limit);
     }
   }
 }
