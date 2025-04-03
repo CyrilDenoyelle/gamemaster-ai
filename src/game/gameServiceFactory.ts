@@ -204,6 +204,10 @@ ${game
       ? `${game.fileName}.json`
       : `${game.gameName}.json`;
 
+    if (!existsSync(channelFolder)) {
+      mkdirSync(channelFolder, { recursive: true });
+    }
+
     writeFileSync(join(channelFolder, fileName), JSON.stringify(game, null, 2));
     this.logger.log(`Game saved: ${fileName}`);
   }
