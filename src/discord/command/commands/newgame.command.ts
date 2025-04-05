@@ -27,6 +27,7 @@ export default class NewGame implements Command {
     if (!interaction.isChatInputCommand()) return;
     const { channel } = interaction;
     interaction.reply(`Demande de nouvelle partie reçue !
+    ${interaction.options.getString('user-prompt') ? 'Prompt utilisateur: ' + interaction.options.getString('user-prompt') : ''}
 Création en cours...`);
 
     const { gameName, message: firstMessage } =
