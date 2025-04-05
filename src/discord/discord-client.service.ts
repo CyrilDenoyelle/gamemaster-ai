@@ -13,12 +13,9 @@ import {
   Partials,
   REST,
   Routes,
-  VoiceChannel,
-  VoiceState,
 } from 'discord.js';
 import { MessageService } from './message/message.service';
-import { existsSync, readdirSync, readFileSync } from 'fs';
-import { VoiceService } from './voice/voice.service';
+import { readdirSync } from 'fs';
 import { join } from 'path';
 import { Command } from './command/command.interface';
 import { CommandService } from './command/command.service';
@@ -33,7 +30,6 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly commandService: CommandService,
     private readonly messageService: MessageService,
-    private readonly voiceService: VoiceService,
     @Inject('GameServiceFactory')
     private readonly gameServiceFactory: GameServiceFactory,
   ) {
@@ -60,21 +56,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       } else {
         this.logger.error('Failed to set BOT_ID: client user ID is undefined.');
       }
-      this.loadConnectedChannels();
       this.registerSlashCommands();
     });
 
     this.client.on(Events.MessageCreate, (message) => {
       this.messageService.handleMessage(message);
     });
-
-    // subscribe to user connections events
-    this.client.on(
-      Events.VoiceStateUpdate,
-      (oldState: VoiceState, newState: VoiceState) => {
-        this.voiceService.handleVoiceStateUpdate(oldState, newState);
-      },
-    );
 
     // slahs commands
     this.client.on(Events.InteractionCreate, async (interaction: Interaction) =>
@@ -87,25 +74,6 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     this.logger.log('Destroying Discord Bot');
     await this.client.destroy();
-  }
-
-  /**
-   * Loads connected channels from storage and reconnects.
-   */
-  private async loadConnectedChannels() {
-    if (!existsSync(this.voiceService.storageFile)) return;
-    const { guildId, channelId } = JSON.parse(
-      readFileSync(this.voiceService.storageFile, 'utf-8'),
-    );
-    const guild = await this.getGuildById(guildId);
-    const channel = guild?.channels.resolve(channelId) as VoiceChannel;
-    if (channel) {
-      this.logger.log(
-        `Reconnecting to channel ${channel.name} in guild ${guild.name}`,
-      );
-      this.voiceService.joinChannel(channel);
-    }
-    return;
   }
 
   /**
@@ -138,7 +106,6 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       const command: Command = new CommandClass({
-        voiceService: this.voiceService,
         gameServiceFactory: this.gameServiceFactory,
       });
 
