@@ -5,7 +5,7 @@ import {
   ChatServiceArgs,
   restrictedChatMessage,
 } from 'src/chat/chat.service';
-import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
+import { ChatServiceFactory } from 'src/chat/chatServiceFactory';
 
 export type Game = {
   channelId: Channel['id'];
