@@ -1,4 +1,4 @@
-import { ChatServiceFactory } from 'src/chat/ChatServiceFactory';
+import { ChatServiceFactory } from 'src/chat/chatServiceFactory';
 import { Game, GameService } from './game.service';
 import {
   existsSync,
