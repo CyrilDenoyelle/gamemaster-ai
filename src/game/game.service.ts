@@ -101,7 +101,7 @@ Ces éléments doivent être génériques et applicables à divers contextes de 
 Uniquement une liste de questions.`,
     });
 
-    this.chats[subject].sendMessage({
+    await this.chats[subject].sendMessage({
       role: 'user',
       content: questions,
     });
