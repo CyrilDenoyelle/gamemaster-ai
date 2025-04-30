@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./games:/app/games
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    command: ${COMMAND:-npm run start}
+    restart: unless-stopped
